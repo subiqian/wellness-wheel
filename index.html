@@ -146,7 +146,7 @@
   .stamp { text-align: center; letter-spacing: 1px; }
   .loc {
     background: none; border: none; cursor: pointer;
-    font-size: 14px; padding: 0 2px; line-height: 1;
+    font: inherit; color: inherit; padding: 0 2px; line-height: 1;
   }
   .key { margin: 0 0 14px; text-align: center; }
 
@@ -551,18 +551,18 @@
     city = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
   }
 
-  function stampText() {
+  function dateTimePart() {
     const now = new Date();
     const pad = n => String(n).padStart(2, "0");
     let h = now.getHours();
     const ampm = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12;
-    const date = pad(now.getMonth() + 1) + "/" + pad(now.getDate()) + "/" + now.getFullYear();
-    const time = pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
-    return date + " " + time + (city ? " · " + city : "");
+    return pad(now.getMonth() + 1) + "/" + pad(now.getDate()) + "/" + now.getFullYear() +
+      " " + pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
   }
+  const stampText = () => "🕒 " + dateTimePart() + (city ? "  ·  📍 " + city : "");
   // precise location is strictly OPT-IN: nothing is requested until the 📍
-  // link is clicked (the coordinates go to BigDataCloud once, to be turned
+  // location is clicked (the coordinates go to BigDataCloud once, to be turned
   // into a city name; only the name is kept, in this browser)
   let preciseCity = null;
   try { preciseCity = localStorage.getItem("ww-city"); } catch (e) {}
@@ -570,8 +570,10 @@
 
   const stampEl = document.getElementById("stamp");
   const renderStamp = () => {
-    stampEl.innerHTML = '<span class="heart">♥</span> ' + stampText() + ' <span class="heart">♥</span>' +
-      (preciseCity ? "" : ' <button class="loc" id="loc-btn" title="Add my precise location (asks permission, sent once to a geocoding service)">📍</button>');
+    stampEl.innerHTML = "🕒 " + dateTimePart() + "  ·  " +
+      '<button class="loc" id="loc-btn" title="' +
+      (preciseCity ? "Location you shared" : "Use my precise location (asks permission, sent once to a geocoding service)") +
+      '">📍 ' + city + "</button>";
   };
   renderStamp();
   setInterval(renderStamp, 30000);
@@ -713,15 +715,9 @@
       ctx.beginPath(); ctx.roundRect(PAD + 1, sbY, panelW - 2, SBH, 6);
       ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
       ctx.font = "bold 16px 'Courier New', monospace";
-      ctx.textAlign = "left";
-      const stamp = " " + stampStr + " ";
-      const wTxt = ctx.measureText(stamp).width;
-      const wHrt = ctx.measureText("♥").width;
-      let sx = (W - (wTxt + wHrt * 2)) / 2;
-      const midY = sbY + SBH / 2 + 1;
-      ctx.fillStyle = HEART; ctx.fillText("♥", sx, midY); sx += wHrt;
-      ctx.fillStyle = BROWN; ctx.fillText(stamp, sx, midY); sx += wTxt;
-      ctx.fillStyle = HEART; ctx.fillText("♥", sx, midY);
+      ctx.textAlign = "center";
+      ctx.fillStyle = BROWN;
+      ctx.fillText(stampStr, W / 2, sbY + SBH / 2 + 1);
 
       URL.revokeObjectURL(url);
       canvas.toBlob(done, "image/png");
