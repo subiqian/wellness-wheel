@@ -142,7 +142,7 @@
     background: var(--cream-2);
     border: 2px solid var(--brown); border-radius: 5px;
   }
-  .statusbar .heart { color: var(--heart); }
+  .heart { color: var(--accent, #d94f2b); } /* text hearts follow the selected color */
   .stamp { text-align: center; letter-spacing: 1px; }
   .loc {
     background: none; border: none; cursor: pointer;
@@ -168,7 +168,7 @@
 
     <div class="window">
       <div class="titlebar pink">
-        <span class="heart" style="color:#d94f2b" aria-hidden="true">♥</span>
+        <span class="heart" aria-hidden="true">♥</span>
         <input id="title-input" placeholder="Wellness" aria-label="Chart title" maxlength="60">
         <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
@@ -395,6 +395,15 @@
 
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
     document.getElementById("avg").textContent = avg.toFixed(1) + "/5";
+
+    // overall score on the chart itself (top-left corner)
+    const oLbl = el("text", { x: 24, y: 40, fill: t.ink2, "font-size": 16,
+      "font-weight": "bold", "font-family": FONT });
+    oLbl.textContent = "overall";
+    const oVal = el("text", { x: 24, y: 74, fill: t.ink, "font-size": 30,
+      "font-weight": "bold", "font-family": FONT });
+    oVal.textContent = avg.toFixed(1) + "/5";
+    svg.append(oLbl, oVal);
   }
 
   // ---------- pillar list ----------
@@ -611,8 +620,10 @@
       });
       box.appendChild(b);
     }
-    // the chart window's title bar wears a muted wash of the selected color
-    document.querySelector(".titlebar.pink").style.background = muted(state.color);
+    // both title bars wear a muted wash of the selected color;
+    // all text hearts take the color itself
+    document.querySelectorAll(".titlebar").forEach(tb => { tb.style.background = muted(state.color); });
+    document.documentElement.style.setProperty("--accent", state.color);
   }
 
   // ---------- actions ----------
@@ -642,7 +653,7 @@
     const W = SVG_W + (PAD + PNL) * 2;
     const sbY = TB + PAD + panelH + GAP;
     const H = sbY + SBH + PAD;
-    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", HEART = "#d94f2b";
+    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", HEART = state.color;
 
     const clone = svg.cloneNode(true);
     clone.setAttribute("width", SVG_W); clone.setAttribute("height", SVG_H);
