@@ -146,6 +146,21 @@
   }
   .side-actions .pcbtn:hover::after { opacity: 1; }
 
+  /* the copy button wears the chart color and pulses a soft ring — click me! */
+  #copy { background: var(--accent-muted, var(--cream-2)); }
+  #copy::before {
+    content: ""; position: absolute; inset: -5px;
+    border: 3px solid var(--accent, #e03aa8); border-radius: 10px;
+    animation: copy-pulse 2s ease-out infinite;
+    pointer-events: none;
+  }
+  #copy.clicked::before { animation: none; opacity: 0; } /* nudge done its job */
+  @keyframes copy-pulse {
+    0% { transform: scale(.92); opacity: .85; }
+    70%, 100% { transform: scale(1.22); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { #copy::before { animation: none; opacity: 0; } }
+
   /* nudge under the chart window: finish by copying + sharing */
   .share-hint {
     margin-top: 13px; text-align: center;
@@ -760,8 +775,11 @@
       });
       box.appendChild(b);
     }
-    // both title bars wear a muted wash of the selected color
+    // both title bars and the copy button wear a muted wash of the selected
+    // color; the copy button's pulse ring takes the color itself
     document.querySelectorAll(".titlebar").forEach(tb => { tb.style.background = muted(state.color); });
+    document.documentElement.style.setProperty("--accent", state.color);
+    document.documentElement.style.setProperty("--accent-muted", muted(state.color));
   }
 
   // ---------- actions ----------
@@ -875,7 +893,8 @@
     img.src = url;
   }
 
-  document.getElementById("copy").addEventListener("click", () => {
+  document.getElementById("copy").addEventListener("click", function () {
+    this.classList.add("clicked"); // the pulse has done its job
     // the PNG goes straight to the clipboard; the stamp is the moment of
     // the click. ClipboardItem takes the promise so the write stays inside
     // the user gesture (Safari requires this). No clipboard → download.
