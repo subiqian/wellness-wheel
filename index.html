@@ -702,44 +702,55 @@
     windowPNG(stampText(), png => downloadBlob(png, slug() + ".png"));
   });
 
-  // ---------- save: screenshot + CSV record, written into the saves folder ----------
-  // (File System Access API — the folder handle persists in IndexedDB;
-  //  browsers without it just get both files as downloads)
+  // ---------- save: screenshot + CSV record committed to GitHub over the web ----------
+  // Files land in the PRIVATE repo below (this site's repo is public, wellness
+  // data shouldn't be). Needs a fine-grained personal access token, asked for
+  // once and kept in this browser's localStorage.
+  const GH_REPO = "subiqian/wellness-saves";
+  const TOKEN_KEY = "ww-gh-token";
   const LOG_KEY = "wellness-wheel-log";
-  function idb(mode, cb) {
-    const req = indexedDB.open("ww-fs", 1);
-    req.onupgradeneeded = () => req.result.createObjectStore("kv");
-    req.onsuccess = () => cb(req.result.transaction("kv", mode).objectStore("kv"));
-  }
-  const saveHandle = h => idb("readwrite", s => s.put(h, "dir"));
-  const loadHandle = () => new Promise(res => {
-    try {
-      idb("readonly", s => {
-        const g = s.get("dir");
-        g.onsuccess = () => res(g.result || null);
-        g.onerror = () => res(null);
-      });
-    } catch (e) { res(null); }
-  });
-  async function getSaveDir() {
-    if (!window.showDirectoryPicker) return null;
-    let dir = await loadHandle();
-    if (dir) {
-      let p = await dir.queryPermission({ mode: "readwrite" });
-      if (p !== "granted") p = await dir.requestPermission({ mode: "readwrite" });
-      if (p !== "granted") dir = null;
+
+  function ghToken() {
+    let t = null;
+    try { t = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+    if (!t) {
+      t = prompt("To save to github.com/" + GH_REPO + ", paste a GitHub token.\n\n" +
+        "Make one at github.com → Settings → Developer settings → " +
+        "Fine-grained tokens: select only the wellness-saves repo, " +
+        "permission Contents = Read and write.\n\n(Stored only in this browser.)");
+      if (t) {
+        t = t.trim();
+        try { localStorage.setItem(TOKEN_KEY, t); } catch (e) {}
+      }
     }
-    if (!dir) {
-      dir = await window.showDirectoryPicker({ id: "wellness-saves", mode: "readwrite" });
-      saveHandle(dir);
-    }
-    return dir;
+    return t;
   }
-  async function writeFile(dir, name, blob) {
-    const fh = await dir.getFileHandle(name, { create: true });
-    const w = await fh.createWritable();
-    await w.write(blob);
-    await w.close();
+  async function ghApi(path, opts) {
+    const t = ghToken();
+    if (!t) throw new Error("no token");
+    const r = await fetch("https://api.github.com/repos/" + GH_REPO + "/contents/" + path, {
+      method: (opts && opts.method) || "GET",
+      body: (opts && opts.body) || undefined,
+      headers: { Authorization: "Bearer " + t, Accept: "application/vnd.github+json" }
+    });
+    if (r.status === 401 || r.status === 403) {
+      try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} // bad token — ask again next save
+      throw new Error("auth");
+    }
+    return r;
+  }
+  const bytesToB64 = bytes => {
+    const arr = new Uint8Array(bytes);
+    let s = "";
+    for (let i = 0; i < arr.length; i += 0x8000) s += String.fromCharCode.apply(null, arr.subarray(i, i + 0x8000));
+    return btoa(s);
+  };
+  const b64ToText = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
+  async function ghPut(path, contentB64, message, sha) {
+    const body = { message, content: contentB64 };
+    if (sha) body.sha = sha;
+    const r = await ghApi(path, { method: "PUT", body: JSON.stringify(body) });
+    if (!r.ok) throw new Error("put " + r.status);
   }
 
   document.getElementById("save").addEventListener("click", () => {
@@ -764,17 +775,27 @@
 
     windowPNG(full, async png => {
       try {
-        const dir = await getSaveDir();
-        if (dir) {
-          await writeFile(dir, pngName, png);
-          await writeFile(dir, "wellness-log.csv", csvBlob);
-          toast("Your wellness state has been saved! ♥");
-          return;
+        // the CSV in the repo is the source of truth: fetch, append, commit
+        const esc2 = v => '"' + String(v).replace(/"/g, '""') + '"';
+        let csvText = header.map(esc2).join(",") + "\r\n";
+        let sha;
+        const g = await ghApi("wellness-log.csv");
+        if (g.ok) {
+          const j = await g.json();
+          sha = j.sha;
+          csvText = b64ToText(j.content);
+          if (!/\r?\n$/.test(csvText)) csvText += "\r\n";
         }
-      } catch (e) { /* picker cancelled or write failed — fall back to downloads */ }
-      downloadBlob(png, pngName);
-      downloadBlob(csvBlob, "wellness-log.csv");
-      toast("Your wellness state has been saved! ♥");
+        csvText += row.map(esc2).join(",") + "\r\n";
+        await ghPut("wellness-log.csv", bytesToB64(new TextEncoder().encode(csvText)), "log: " + datetime, sha);
+        await ghPut("shots/" + pngName, bytesToB64(await png.arrayBuffer()), "shot: " + datetime);
+        toast("Your wellness state has been saved! ♥");
+      } catch (e) {
+        // no token / auth / offline — hand over the files instead
+        downloadBlob(png, pngName);
+        downloadBlob(csvBlob, "wellness-log.csv");
+        toast("Your wellness state has been saved! ♥ (downloaded)");
+      }
     });
   });
 
