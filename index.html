@@ -125,12 +125,15 @@
 
   #add-pillar { margin-top: 14px; padding: 6px 12px; }
 
-  .actions { display: flex; gap: 9px; margin-top: 16px; align-items: center; }
-  .actions .pcbtn {
-    width: 42px; height: 36px;
+  /* screenshot + reset hover just right of the chart square */
+  .chart-row { display: flex; gap: 10px; align-items: flex-start; }
+  .canvas-panel { flex: 1; min-width: 0; }
+  .side-actions { display: flex; flex-direction: column; gap: 9px; flex: none; }
+  .side-actions .pcbtn {
+    width: 44px; height: 40px;
     display: inline-flex; align-items: center; justify-content: center;
   }
-  .actions svg { width: 17px; height: 17px; display: block; }
+  .side-actions svg { width: 18px; height: 18px; display: block; }
 
   .statusbar {
     margin-top: 16px;
@@ -170,8 +173,18 @@
         <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
-        <div class="canvas-panel">
-          <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
+        <div class="chart-row">
+          <div class="canvas-panel">
+            <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
+          </div>
+          <div class="side-actions">
+            <button class="pcbtn" id="shot" title="Screenshot — opens in a new tab" aria-label="Screenshot, opens in a new tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+            <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+          </div>
         </div>
         <div class="statusbar stamp" id="stamp"></div>
       </div>
@@ -195,14 +208,6 @@
         <div class="statusbar key"><span class="heart">♥</span> 0 = struggling · 5 = thriving <span class="heart">♥</span></div>
         <ul class="pillars" id="pillar-list"></ul>
         <button class="pcbtn" id="add-pillar">+ add pillar</button>
-        <div class="actions">
-          <button class="pcbtn" id="shot" title="Screenshot — opens in a new tab" aria-label="Screenshot, opens in a new tab">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </button>
-          <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -222,6 +227,12 @@
   const rgba = (hex, a) => {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+  };
+  // pastel-wash a swatch (mix 45% toward white) — for the title bar
+  const muted = hex => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = c => Math.round(c + (255 - c) * 0.45);
+    return "#" + ((1 << 24) + (mix(n >> 16 & 255) << 16) + (mix(n >> 8 & 255) << 8) + mix(n & 255)).toString(16).slice(1);
   };
 
   // ---------- state ----------
@@ -600,8 +611,8 @@
       });
       box.appendChild(b);
     }
-    // the chart window's title bar wears the selected color too
-    document.querySelector(".titlebar.pink").style.background = state.color;
+    // the chart window's title bar wears a muted wash of the selected color
+    document.querySelector(".titlebar.pink").style.background = muted(state.color);
   }
 
   // ---------- actions ----------
@@ -667,7 +678,7 @@
       ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
       ctx.fillStyle = CREAM; ctx.fill();
       ctx.save(); ctx.clip();
-      ctx.fillStyle = state.color; ctx.fillRect(0, 0, W, TB);
+      ctx.fillStyle = muted(state.color); ctx.fillRect(0, 0, W, TB);
       ctx.fillStyle = BROWN; ctx.fillRect(0, TB - 2, W, 2);
       ctx.restore();
       ctx.lineWidth = 3; ctx.strokeStyle = BROWN;
