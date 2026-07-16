@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Wheel</title>
+<meta name="description" content="Map your wellness across life's pillars — drag, save, and share your wheel.">
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --hairline: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
+    --series: #2a78d6;
+    --danger: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --hairline: rgba(255,255,255,0.10);
+      --grid: #2c2c2a;
+      --series: #3987e5;
+      --danger: #e66767;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header { margin-bottom: 20px; }
+  #title-input {
+    font: 600 28px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    width: 100%;
+    padding: 4px 0;
+    outline: none;
+  }
+  #title-input:hover, #title-input:focus { border-bottom-color: var(--hairline); }
+  #title-input::placeholder { color: var(--muted); }
+  .subtitle { color: var(--ink-2); font-size: 14px; margin-top: 4px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .chart-card { padding: 8px; }
+  #chart { display: block; width: 100%; height: auto; touch-action: none; }
+  #chart .hit { cursor: grab; outline: none; }
+  #chart .hit:active { cursor: grabbing; }
+  #chart .hit:focus-visible + .dot { stroke-width: 4; }
+
+  .stat { display: flex; align-items: baseline; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--hairline); margin-bottom: 14px; }
+  .stat .value { font-size: 34px; font-weight: 600; }
+  .stat .label { color: var(--ink-2); font-size: 13px; }
+
+  .pillars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pillars li { display: flex; align-items: center; gap: 8px; }
+  .pillars input {
+    flex: 1; min-width: 0;
+    font: 14px system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: transparent;
+    border: none; border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
+  }
+  .pillars input:hover, .pillars input:focus { background: var(--page); }
+  .pillars .val { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; width: 30px; text-align: right; }
+  .pillars .rm {
+    border: none; background: transparent; color: var(--muted);
+    font-size: 16px; line-height: 1; padding: 4px 6px; border-radius: 6px; cursor: pointer;
+  }
+  .pillars .rm:hover { color: var(--danger); background: var(--page); }
+
+  .add-btn {
+    margin-top: 8px;
+    border: none; background: transparent; color: var(--ink-2);
+    font-size: 13px; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  }
+  .add-btn:hover { background: var(--page); color: var(--ink); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+  .btn {
+    font: 500 13px system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink);
+  }
+  .btn:hover { background: var(--page); }
+  .btn.primary { background: var(--series); border-color: var(--series); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.danger { color: var(--danger); }
+
+  .hint { color: var(--muted); font-size: 12px; margin-top: 14px; line-height: 1.5; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 10;
+    background: var(--ink); color: var(--page);
+    font-size: 12px; font-weight: 500;
+    padding: 4px 9px; border-radius: 6px;
+    transform: translate(-50%, -140%);
+    white-space: nowrap; display: none;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--ink); color: var(--page);
+    font-size: 13px; padding: 9px 16px; border-radius: 999px;
+    opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 20;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <input id="title-input" placeholder="My Wellness Wheel" aria-label="Chart title" maxlength="60">
+    <p class="subtitle">Drag each dot to rate the pillar from 0 (struggling) to 10 (thriving).</p>
+  </header>
+
+  <div class="layout">
+    <div class="card chart-card">
+      <svg id="chart" viewBox="0 0 640 640" role="img" aria-label="Wellness spider chart"></svg>
+    </div>
+
+    <div class="card">
+      <div class="stat">
+        <span class="value" id="avg">–</span>
+        <span class="label">overall / 10</span>
+      </div>
+      <ul class="pillars" id="pillar-list"></ul>
+      <button class="add-btn" id="add-pillar">+ Add pillar</button>
+      <div class="actions">
+        <button class="btn primary" id="copy-link">Copy share link</button>
+        <button class="btn" id="share" hidden>Share…</button>
+        <button class="btn" id="download">Download PNG</button>
+        <button class="btn danger" id="reset">Reset</button>
+      </div>
+      <p class="hint">Your wheel saves automatically in this browser. The share link carries your exact scores — anyone who opens it sees your wheel and can adjust their own copy.</p>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- theme (explicit values so SVG serializes correctly for PNG export) ----------
+  const THEMES = {
+    light: { surface:"#fcfcfb", ink:"#0b0b0b", ink2:"#52514e", muted:"#898781",
+             grid:"#e1e0d9", axis:"#c3c2b7", series:"#2a78d6", fill:"rgba(42,120,214,0.16)" },
+    dark:  { surface:"#1a1a19", ink:"#ffffff", ink2:"#c3c2b7", muted:"#898781",
+             grid:"#2c2c2a", axis:"#383835", series:"#3987e5", fill:"rgba(57,135,229,0.22)" }
+  };
+  const darkMq = window.matchMedia("(prefers-color-scheme: dark)");
+  const theme = () => darkMq.matches ? THEMES.dark : THEMES.light;
+
+  // ---------- state ----------
+  const DEFAULTS = [
+    ["Mental health", 5], ["Physical health", 5], ["Sleep", 5], ["Calm (low anxiety)", 5],
+    ["Social connection", 5], ["Work & purpose", 5], ["Nutrition", 5], ["Fun & play", 5]
+  ];
+  const STORE_KEY = "wellness-wheel-v1";
+  const MIN_PILLARS = 3, MAX_PILLARS = 12;
+
+  let state = load();
+
+  function defaults() {
+    return { title: "", pillars: DEFAULTS.map(([n, v]) => ({ name: n, value: v })) };
+  }
+  function load() {
+    // URL hash wins (a shared wheel), then this browser's saved wheel, then defaults.
+    const fromHash = decodeHash(location.hash);
+    if (fromHash) return fromHash;
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (Array.isArray(s.pillars) && s.pillars.length >= MIN_PILLARS) return sanitize(s);
+      }
+    } catch (e) { /* corrupted storage — fall through */ }
+    return defaults();
+  }
+  function sanitize(s) {
+    return {
+      title: String(s.title || "").slice(0, 60),
+      pillars: s.pillars.slice(0, MAX_PILLARS).map(p => ({
+        name: String(p.name || "Pillar").slice(0, 24),
+        value: Math.min(10, Math.max(0, Number(p.value) || 0))
+      }))
+    };
+  }
+  function encodeHash(s) {
+    const json = JSON.stringify([s.title, s.pillars.map(p => [p.name, p.value])]);
+    return "#" + btoa(String.fromCharCode(...new TextEncoder().encode(json)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function decodeHash(hash) {
+    if (!hash || hash.length < 2) return null;
+    try {
+      const b64 = hash.slice(1).replace(/-/g, "+").replace(/_/g, "/");
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const [title, pairs] = JSON.parse(new TextDecoder().decode(bytes));
+      if (!Array.isArray(pairs) || pairs.length < MIN_PILLARS) return null;
+      return sanitize({ title, pillars: pairs.map(([name, value]) => ({ name, value })) });
+    } catch (e) { return null; }
+  }
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+    history.replaceState(null, "", encodeHash(state));
+  }
+
+  // ---------- chart geometry ----------
+  const svg = document.getElementById("chart");
+  const NS = "http://www.w3.org/2000/svg";
+  const CX = 320, CY = 320, R = 200, LABEL_R = R + 36;
+
+  const angle = i => -Math.PI / 2 + (i * 2 * Math.PI) / state.pillars.length;
+  const pt = (i, v) => {
+    const a = angle(i), r = (v / 10) * R;
+    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  };
+  const el = (tag, attrs) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+
+  function renderChart() {
+    const t = theme();
+    svg.textContent = "";
+    const N = state.pillars.length;
+
+    // grid rings (spider polygons) at 2,4,6,8,10 + spokes — recessive hairlines
+    for (const v of [2, 4, 6, 8, 10]) {
+      const pts = state.pillars.map((_, i) => pt(i, v).join(",")).join(" ");
+      svg.appendChild(el("polygon", { points: pts, fill: "none", stroke: t.grid, "stroke-width": 1 }));
+    }
+    for (let i = 0; i < N; i++) {
+      const [x, y] = pt(i, 10);
+      svg.appendChild(el("line", { x1: CX, y1: CY, x2: x, y2: y, stroke: t.grid, "stroke-width": 1 }));
+    }
+    // ring value labels along the top spoke
+    for (const v of [2, 4, 6, 8, 10]) {
+      const lbl = el("text", { x: CX + 7, y: CY - (v / 10) * R + 4, fill: t.muted,
+        "font-size": 10, "font-family": "system-ui, sans-serif" });
+      lbl.textContent = v;
+      svg.appendChild(lbl);
+    }
+
+    // data polygon
+    const poly = state.pillars.map((p, i) => pt(i, p.value).join(",")).join(" ");
+    svg.appendChild(el("polygon", { points: poly, fill: t.fill, stroke: t.series,
+      "stroke-width": 2, "stroke-linejoin": "round" }));
+
+    // pillar labels (name + value) — ink tokens, never series color
+    state.pillars.forEach((p, i) => {
+      const a = angle(i);
+      const x = CX + LABEL_R * Math.cos(a), y = CY + LABEL_R * Math.sin(a);
+      const cos = Math.cos(a), sin = Math.sin(a);
+      const anchor = Math.abs(cos) < 0.3 ? "middle" : cos > 0 ? "start" : "end";
+      const dy = sin > 0.85 ? 14 : sin < -0.85 ? -8 : 4;
+      const g = el("text", { x, y: y + dy, "text-anchor": anchor, fill: t.ink2,
+        "font-size": 14, "font-family": "system-ui, sans-serif" });
+      const name = document.createElementNS(NS, "tspan");
+      name.textContent = p.name;
+      const val = el("tspan", { fill: t.ink, "font-weight": 600, dx: 6 });
+      val.textContent = p.value % 1 ? p.value.toFixed(1) : p.value;
+      g.append(name, val);
+      svg.appendChild(g);
+    });
+
+    // vertices: visible dot + oversized invisible hit target (keyboard-adjustable)
+    state.pillars.forEach((p, i) => {
+      const [x, y] = pt(i, p.value);
+      const hit = el("circle", { cx: x, cy: y, r: 20, fill: "transparent",
+        class: "hit", tabindex: 0, role: "slider",
+        "aria-label": p.name, "aria-valuemin": 0, "aria-valuemax": 10, "aria-valuenow": p.value });
+      hit.dataset.i = i;
+      const dot = el("circle", { cx: x, cy: y, r: 7, fill: t.surface,
+        stroke: t.series, "stroke-width": 2.5, "pointer-events": "none", class: "dot" });
+      svg.append(hit, dot);
+    });
+
+    // side panel numbers
+    const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
+    document.getElementById("avg").textContent = avg.toFixed(1);
+    document.querySelectorAll("#pillar-list .val").forEach((elm, i) => {
+      const v = state.pillars[i].value;
+      elm.textContent = v % 1 ? v.toFixed(1) : v;
+    });
+  }
+
+  function renderList() {
+    const list = document.getElementById("pillar-list");
+    list.textContent = "";
+    state.pillars.forEach((p, i) => {
+      const li = document.createElement("li");
+      const input = document.createElement("input");
+      input.value = p.name;
+      input.maxLength = 24;
+      input.setAttribute("aria-label", "Pillar " + (i + 1) + " name");
+      input.addEventListener("input", () => {
+        state.pillars[i].name = input.value || "Pillar";
+        renderChart(); persist();
+      });
+      const val = document.createElement("span");
+      val.className = "val";
+      const rm = document.createElement("button");
+      rm.className = "rm";
+      rm.textContent = "×";
+      rm.setAttribute("aria-label", "Remove " + p.name);
+      rm.addEventListener("click", () => {
+        if (state.pillars.length <= MIN_PILLARS) return toast("Keep at least " + MIN_PILLARS + " pillars");
+        state.pillars.splice(i, 1);
+        renderList(); renderChart(); persist();
+      });
+      li.append(input, val, rm);
+      list.appendChild(li);
+    });
+    renderChart();
+  }
+
+  // ---------- dragging ----------
+  const tooltip = document.getElementById("tooltip");
+  let dragging = -1;
+
+  function svgPoint(evt) {
+    const p = new DOMPoint(evt.clientX, evt.clientY);
+    return p.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function valueAt(evt, i) {
+    const p = svgPoint(evt);
+    const a = angle(i);
+    const t = ((p.x - CX) * Math.cos(a) + (p.y - CY) * Math.sin(a)) / R * 10;
+    return Math.round(Math.min(10, Math.max(0, t)) * 2) / 2; // snap to 0.5
+  }
+  function nearestSpoke(evt) {
+    const p = svgPoint(evt);
+    const a = Math.atan2(p.y - CY, p.x - CX);
+    let best = 0, bestDiff = Infinity;
+    for (let i = 0; i < state.pillars.length; i++) {
+      let d = Math.abs(a - angle(i));
+      d = Math.min(d, 2 * Math.PI - d);
+      if (d < bestDiff) { bestDiff = d; best = i; }
+    }
+    return best;
+  }
+  function showTip(evt, i) {
+    const p = state.pillars[i];
+    tooltip.textContent = p.name + "  " + (p.value % 1 ? p.value.toFixed(1) : p.value);
+    tooltip.style.left = evt.clientX + "px";
+    tooltip.style.top = evt.clientY + "px";
+    tooltip.style.display = "block";
+  }
+
+  svg.addEventListener("pointerdown", evt => {
+    dragging = evt.target.classList?.contains("hit") ? +evt.target.dataset.i : nearestSpoke(evt);
+    svg.setPointerCapture(evt.pointerId);
+    state.pillars[dragging].value = valueAt(evt, dragging);
+    renderChart(); showTip(evt, dragging);
+    evt.preventDefault();
+  });
+  svg.addEventListener("pointermove", evt => {
+    if (dragging >= 0) {
+      state.pillars[dragging].value = valueAt(evt, dragging);
+      renderChart(); showTip(evt, dragging);
+    } else if (evt.target.classList?.contains("hit")) {
+      showTip(evt, +evt.target.dataset.i);
+    } else {
+      tooltip.style.display = "none";
+    }
+  });
+  const endDrag = () => {
+    if (dragging >= 0) { dragging = -1; tooltip.style.display = "none"; persist(); }
+  };
+  svg.addEventListener("pointerup", endDrag);
+  svg.addEventListener("pointercancel", endDrag);
+  svg.addEventListener("pointerleave", () => { if (dragging < 0) tooltip.style.display = "none"; });
+
+  // keyboard on vertices
+  svg.addEventListener("keydown", evt => {
+    if (!evt.target.classList?.contains("hit")) return;
+    const i = +evt.target.dataset.i;
+    const p = state.pillars[i];
+    let v = p.value;
+    if (evt.key === "ArrowUp" || evt.key === "ArrowRight") v += 0.5;
+    else if (evt.key === "ArrowDown" || evt.key === "ArrowLeft") v -= 0.5;
+    else if (evt.key === "Home") v = 0;
+    else if (evt.key === "End") v = 10;
+    else return;
+    evt.preventDefault();
+    p.value = Math.min(10, Math.max(0, v));
+    renderChart(); persist();
+    svg.querySelectorAll(".hit")[i].focus();
+  });
+
+  // ---------- title ----------
+  const titleInput = document.getElementById("title-input");
+  titleInput.value = state.title;
+  titleInput.addEventListener("input", () => { state.title = titleInput.value; persist(); });
+
+  // ---------- actions ----------
+  const toastEl = document.getElementById("toast");
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  }
+
+  document.getElementById("add-pillar").addEventListener("click", () => {
+    if (state.pillars.length >= MAX_PILLARS) return toast("Max " + MAX_PILLARS + " pillars");
+    state.pillars.push({ name: "New pillar", value: 5 });
+    renderList(); persist();
+    const inputs = document.querySelectorAll("#pillar-list input");
+    const last = inputs[inputs.length - 1];
+    last.focus(); last.select();
+  });
+
+  document.getElementById("copy-link").addEventListener("click", async () => {
+    persist();
+    try {
+      await navigator.clipboard.writeText(location.href);
+      toast("Link copied — send it to anyone");
+    } catch (e) {
+      prompt("Copy this link:", location.href);
+    }
+  });
+
+  const shareBtn = document.getElementById("share");
+  if (navigator.share) {
+    shareBtn.hidden = false;
+    shareBtn.addEventListener("click", () => {
+      persist();
+      navigator.share({ title: state.title || "My Wellness Wheel", url: location.href }).catch(() => {});
+    });
+  }
+
+  document.getElementById("download").addEventListener("click", () => {
+    const t = theme();
+    const SCALE = 2, HEAD = state.title ? 88 : 32;
+    const clone = svg.cloneNode(true);
+    clone.setAttribute("width", 640); clone.setAttribute("height", 640);
+    clone.setAttribute("xmlns", NS);
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 640 * SCALE;
+      canvas.height = (640 + HEAD) * SCALE;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(SCALE, SCALE);
+      ctx.fillStyle = t.surface;
+      ctx.fillRect(0, 0, 640, 640 + HEAD);
+      if (state.title) {
+        ctx.fillStyle = t.ink;
+        ctx.font = "600 26px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(state.title, 320, 52);
+      }
+      ctx.drawImage(img, 0, HEAD, 640, 640);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(png => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(png);
+        a.download = (state.title || "wellness-wheel").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".png";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }, "image/png");
+    };
+    img.src = url;
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    if (!confirm("Reset all pillars to 5 and restore the default list?")) return;
+    state = defaults();
+    titleInput.value = "";
+    renderList(); persist();
+  });
+
+  darkMq.addEventListener("change", renderChart);
+
+  // ---------- go ----------
+  renderList();
+  persist();
+})();
+</script>
+</body>
+</html>
