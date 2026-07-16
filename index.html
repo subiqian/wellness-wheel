@@ -76,15 +76,13 @@
   .stat { display: flex; align-items: baseline; gap: 7px; }
   .stat .value { font-size: 27px; font-weight: bold; }
   .stat .label { font-size: 12px; font-weight: bold; }
-  .color-pick { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: bold; }
-  input[type="color"] {
-    width: 34px; height: 26px; padding: 1px; cursor: pointer;
-    background: var(--cream-2);
+  .color-pick { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: bold; }
+  .swatches { display: flex; gap: 6px; }
+  .swatch {
+    width: 24px; height: 24px; padding: 0; cursor: pointer;
     border: 2px solid var(--brown); border-radius: 5px;
-    -webkit-appearance: none; appearance: none;
   }
-  input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
-  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+  .swatch.sel { outline: 2px solid var(--brown); outline-offset: 2px; }
 
   .pillars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
   .pillars li { display: flex; align-items: center; gap: 7px; }
@@ -144,6 +142,7 @@
     border: 2px solid var(--brown); border-radius: 5px;
   }
   .statusbar .heart { color: var(--heart); }
+  .stamp { text-align: center; letter-spacing: 1px; }
 
   #toast {
     position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
@@ -171,6 +170,7 @@
         <div class="canvas-panel">
           <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
         </div>
+        <div class="statusbar stamp" id="stamp"></div>
       </div>
     </div>
 
@@ -185,9 +185,9 @@
             <span class="value" id="avg">–</span>
             <span class="label">overall / 5</span>
           </div>
-          <label class="color-pick">color
-            <input type="color" id="color-input" aria-label="Chart color">
-          </label>
+          <div class="color-pick"><span>color</span>
+            <div class="swatches" id="swatches" role="radiogroup" aria-label="Chart color"></div>
+          </div>
         </div>
         <ul class="pillars" id="pillar-list"></ul>
         <button class="pcbtn" id="add-pillar">+ add pillar</button>
@@ -228,7 +228,9 @@
   };
 
   // ---------- state ----------
-  const DEFAULT_COLOR = "#ef9aa9";
+  // bold colors only, straight from the sample aesthetic
+  const SWATCHES = ["#e75f83", "#d94f2b", "#e8872b", "#e3a51f", "#2f9e85", "#3593b5"];
+  const DEFAULT_COLOR = SWATCHES[0];
   const STORE_KEY = "wellness-wheel-v2";
   const FIXED = ["Mental Health", "Physical Health", "Sociability", "Productivity"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
@@ -243,7 +245,7 @@
   // The three fixed pillars always occupy slots 0-2 (matched by name if the
   // incoming data has them); everything else becomes an extra, capped at 7 total.
   function sanitize(s) {
-    const color = /^#[0-9a-fA-F]{6}$/.test(s.color || "") ? s.color : DEFAULT_COLOR;
+    const color = SWATCHES.includes(String(s.color || "").toLowerCase()) ? s.color.toLowerCase() : DEFAULT_COLOR;
     const clampV = v => Math.round(Math.min(MAX_VAL, Math.max(0, Number(v) || 0)));
     const incoming = (Array.isArray(s.pillars) ? s.pillars : []).map(p => ({
       name: String(p.name || "Pillar").slice(0, 24),
@@ -461,17 +463,49 @@
     last.focus(); last.select();
   });
 
+  // ---------- retro datetime + location stamp ----------
+  function stampText() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    let h = now.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    const date = pad(now.getMonth() + 1) + "/" + pad(now.getDate()) + "/" + now.getFullYear();
+    const time = pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
+    // "location" = the timezone city — no permission prompt needed
+    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+    const city = tz.includes("/") ? tz.split("/").pop().replace(/_/g, " ") : tz;
+    return date + " " + time + (city ? " · " + city : "");
+  }
+  const stampEl = document.getElementById("stamp");
+  const renderStamp = () => {
+    stampEl.innerHTML = '<span class="heart">♥</span> ' + stampText() + ' <span class="heart">♥</span>';
+  };
+  renderStamp();
+  setInterval(renderStamp, 30000);
+
   // ---------- title & color ----------
   const titleInput = document.getElementById("title-input");
   titleInput.value = state.title;
   titleInput.addEventListener("input", () => { state.title = titleInput.value; persist(); });
 
-  const colorInput = document.getElementById("color-input");
-  colorInput.value = state.color;
-  colorInput.addEventListener("input", () => {
-    state.color = colorInput.value;
-    renderChart(); persist();
-  });
+  function renderSwatches() {
+    const box = document.getElementById("swatches");
+    box.textContent = "";
+    for (const c of SWATCHES) {
+      const b = document.createElement("button");
+      b.className = "swatch" + (state.color === c ? " sel" : "");
+      b.style.background = c;
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(state.color === c));
+      b.setAttribute("aria-label", "Chart color " + c);
+      b.addEventListener("click", () => {
+        state.color = c;
+        renderSwatches(); renderChart(); persist();
+      });
+      box.appendChild(b);
+    }
+  }
 
   // ---------- actions ----------
   const toastEl = document.getElementById("toast");
@@ -502,11 +536,18 @@
     });
   }
 
+  // PNG export: the whole chart window — title bar, cream frame, chart, retro stamp
   document.getElementById("download").addEventListener("click", () => {
-    const t = THEME;
-    const SCALE = 2, W = 840, H = 640, HEAD = state.title ? 88 : 32;
+    const SCALE = 2, SVG_W = 840, SVG_H = 640;
+    const TB = 48, PAD = 18, PNL = 10, SBH = 38, GAP = 14;
+    const panelW = SVG_W + PNL * 2, panelH = SVG_H + PNL * 2;
+    const W = SVG_W + (PAD + PNL) * 2;
+    const sbY = TB + PAD + panelH + GAP;
+    const H = sbY + SBH + PAD;
+    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", PINK = "#ef9aa9", HEART = "#d94f2b";
+
     const clone = svg.cloneNode(true);
-    clone.setAttribute("width", W); clone.setAttribute("height", H);
+    clone.setAttribute("width", SVG_W); clone.setAttribute("height", SVG_H);
     clone.setAttribute("xmlns", NS);
     const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
@@ -514,18 +555,48 @@
     img.onload = () => {
       const canvas = document.createElement("canvas");
       canvas.width = W * SCALE;
-      canvas.height = (H + HEAD) * SCALE;
+      canvas.height = H * SCALE;
       const ctx = canvas.getContext("2d");
       ctx.scale(SCALE, SCALE);
-      ctx.fillStyle = t.surface;
-      ctx.fillRect(0, 0, W, H + HEAD);
-      if (state.title) {
-        ctx.fillStyle = t.ink;
-        ctx.font = "bold 26px 'Courier New', monospace";
-        ctx.textAlign = "center";
-        ctx.fillText(state.title, W / 2, 52);
-      }
-      ctx.drawImage(img, 0, HEAD, W, H);
+
+      // window body + clipped title bar
+      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
+      ctx.fillStyle = CREAM; ctx.fill();
+      ctx.save(); ctx.clip();
+      ctx.fillStyle = PINK; ctx.fillRect(0, 0, W, TB);
+      ctx.fillStyle = BROWN; ctx.fillRect(0, TB - 2, W, 2);
+      ctx.restore();
+      ctx.lineWidth = 3; ctx.strokeStyle = BROWN;
+      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10); ctx.stroke();
+
+      // title bar text
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 18px 'Courier New', monospace";
+      ctx.textAlign = "left";
+      ctx.fillStyle = HEART; ctx.fillText("♥", PAD, TB / 2 + 1);
+      ctx.fillStyle = BROWN; ctx.fillText(state.title || "my wellness wheel", PAD + 26, TB / 2 + 1);
+      ctx.textAlign = "right"; ctx.fillText("–  □  ×", W - PAD, TB / 2 + 1);
+
+      // white canvas panel + chart
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(PAD + 1, TB + PAD + 1, panelW - 2, panelH - 2, 6);
+      ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.stroke();
+      ctx.drawImage(img, PAD + PNL, TB + PAD + PNL, SVG_W, SVG_H);
+
+      // status bar: retro datetime + location stamp
+      ctx.beginPath(); ctx.roundRect(PAD + 1, sbY, panelW - 2, SBH, 6);
+      ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
+      ctx.font = "bold 16px 'Courier New', monospace";
+      ctx.textAlign = "left";
+      const stamp = " " + stampText() + " ";
+      const wTxt = ctx.measureText(stamp).width;
+      const wHrt = ctx.measureText("♥").width;
+      let sx = (W - (wTxt + wHrt * 2)) / 2;
+      const midY = sbY + SBH / 2 + 1;
+      ctx.fillStyle = HEART; ctx.fillText("♥", sx, midY); sx += wHrt;
+      ctx.fillStyle = BROWN; ctx.fillText(stamp, sx, midY); sx += wTxt;
+      ctx.fillStyle = HEART; ctx.fillText("♥", sx, midY);
+
       URL.revokeObjectURL(url);
       canvas.toBlob(png => {
         const a = document.createElement("a");
@@ -541,12 +612,12 @@
   document.getElementById("reset").addEventListener("click", () => {
     state = defaults();
     titleInput.value = "";
-    colorInput.value = state.color;
-    renderList(); persist();
+    renderSwatches(); renderList(); persist();
     toast("reset ♥");
   });
 
   // ---------- go ----------
+  renderSwatches();
   renderList();
   persist();
 })();
