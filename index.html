@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wellness</title>
 <meta name="description" content="Map your wellness across life's pillars — score, color, and share your wheel.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23f3c1cf' stroke='%2343301f' stroke-width='3'/%3E%3Ccircle cx='22' cy='28' r='3.5' fill='%2343301f'/%3E%3Ccircle cx='42' cy='28' r='3.5' fill='%2343301f'/%3E%3Ccircle cx='14.5' cy='36' r='3.5' fill='%23eda0b5'/%3E%3Ccircle cx='49.5' cy='36' r='3.5' fill='%23eda0b5'/%3E%3Cpath d='M22 38q10 9 20 0' fill='none' stroke='%2343301f' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
     color-scheme: light;
@@ -73,10 +74,7 @@
   }
   #title-input::placeholder { color: var(--brown); }
 
-  .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .stat { display: flex; align-items: baseline; gap: 7px; }
-  .stat .value { font-size: 30px; font-weight: bold; }
-  .stat .label { font-size: 19px; font-weight: bold; } /* bigger than the 16px pillar names */
+  .topline { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 14px; }
   .color-pick { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: bold; }
   .swatches { display: flex; gap: 6px; }
   .swatch {
@@ -142,7 +140,7 @@
     background: var(--cream-2);
     border: 2px solid var(--brown); border-radius: 5px;
   }
-  .heart { color: var(--accent, #d94f2b); } /* text hearts follow the selected color */
+  .heart { color: var(--brown); } /* text hearts wear the ink color */
   .stamp { text-align: center; letter-spacing: 1px; }
   .loc {
     background: none; border: none; cursor: pointer;
@@ -197,10 +195,6 @@
       </div>
       <div class="win-body">
         <div class="topline">
-          <div class="stat">
-            <span class="label">overall</span>
-            <span class="value" id="avg">–</span>
-          </div>
           <div class="color-pick"><span>color</span>
             <div class="swatches" id="swatches" role="radiogroup" aria-label="Chart color"></div>
           </div>
@@ -239,7 +233,6 @@
   // bold colors only, sample-aesthetic adjacent, tuned a touch more vibrant
   const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
-  const STORE_KEY = "wellness-wheel-v2";
   const FIXED = ["Mental", "Physical", "Productivity", "Sociability"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
@@ -272,14 +265,8 @@
     };
   }
   function load() {
-    // URL hash wins (a shared wheel), then this browser's saved wheel, then defaults.
-    const fromHash = decodeHash(location.hash);
-    if (fromHash) return fromHash;
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (raw) return sanitize(JSON.parse(raw));
-    } catch (e) { /* corrupted storage — fall through */ }
-    return defaults();
+    // a shared wheel in the URL hash loads; otherwise every visit starts fresh
+    return decodeHash(location.hash) || defaults();
   }
   function encodeHash(s) {
     const json = JSON.stringify([s.title, s.color, s.pillars.map(p => [p.name, p.value])]);
@@ -299,7 +286,6 @@
     } catch (e) { return null; }
   }
   function persist() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
     history.replaceState(null, "", encodeHash(state));
   }
 
@@ -396,14 +382,13 @@
     });
 
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
-    document.getElementById("avg").textContent = avg.toFixed(1) + "/5";
 
     // overall score on the chart itself (top-left corner) — the word reads
-    // bigger than the 22px pillar labels
-    const oLbl = el("text", { x: 24, y: 44, fill: t.ink2, "font-size": 26,
+    // bigger than the 22px pillar labels, the score bigger still
+    const oLbl = el("text", { x: 24, y: 50, fill: t.ink2, "font-size": 32,
       "font-weight": "bold", "font-family": FONT });
     oLbl.textContent = "overall";
-    const oVal = el("text", { x: 24, y: 82, fill: t.ink, "font-size": 32,
+    const oVal = el("text", { x: 24, y: 98, fill: t.ink, "font-size": 44,
       "font-weight": "bold", "font-family": FONT });
     oVal.textContent = avg.toFixed(1) + "/5";
     svg.append(oLbl, oVal);
@@ -554,6 +539,13 @@
     city = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
   }
 
+  // "UTC-4", "UTC+5:30" — appended to whatever location the stamp shows
+  const utcLabel = (() => {
+    const m = -new Date().getTimezoneOffset();
+    const h = Math.trunc(Math.abs(m) / 60), mm = Math.abs(m) % 60;
+    return "UTC" + (m < 0 ? "-" : "+") + h + (mm ? ":" + String(mm).padStart(2, "0") : "");
+  })();
+
   function dateTimePart() {
     const now = new Date();
     const pad = n => String(n).padStart(2, "0");
@@ -563,7 +555,9 @@
     return pad(now.getMonth() + 1) + "/" + pad(now.getDate()) + "/" + now.getFullYear() +
       " " + pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
   }
-  const stampText = () => "🕒 " + dateTimePart() + (city ? "  ·  📍 " + city : "");
+  // stamp always renders as two lines: datetime on top, location below
+  const stampLines = () => ["🕒 " + dateTimePart(),
+    city ? "📍 " + city + " (" + utcLabel + ")" : ""];
   // precise location is strictly OPT-IN: nothing is requested until the 📍
   // location is clicked (the coordinates go to BigDataCloud once, to be turned
   // into a city name; only the name is kept, in this browser)
@@ -573,10 +567,10 @@
 
   const stampEl = document.getElementById("stamp");
   const renderStamp = () => {
-    stampEl.innerHTML = "🕒 " + dateTimePart() + "  ·  " +
+    stampEl.innerHTML = "🕒 " + dateTimePart() + "<br>" +
       '<button class="loc" id="loc-btn" title="' +
       (preciseCity ? "Location you shared" : "Use my precise location (asks permission, sent once to a geocoding service)") +
-      '">📍 ' + city + "</button>";
+      '">📍 ' + city + " (" + utcLabel + ")</button>";
   };
   renderStamp();
   setInterval(renderStamp, 30000);
@@ -625,10 +619,8 @@
       });
       box.appendChild(b);
     }
-    // both title bars wear a muted wash of the selected color;
-    // all text hearts take the color itself
+    // both title bars wear a muted wash of the selected color
     document.querySelectorAll(".titlebar").forEach(tb => { tb.style.background = muted(state.color); });
-    document.documentElement.style.setProperty("--accent", state.color);
   }
 
   // ---------- actions ----------
@@ -651,14 +643,17 @@
   }
   const slug = () => (state.title || "wellness").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-  function windowPNG(stampStr, done) {
+  function windowPNG(lines, done) {
     const SCALE = 2, SVG_W = 840, SVG_H = 640;
-    const TB = 48, PAD = 18, PNL = 10, SBH = 38, GAP = 14;
+    // the chart draws at its full 840 internal width here — on screen it is
+    // scaled down to ~62% — so all chrome (bars, fonts, radii) is ×1.6 its
+    // on-screen CSS size to keep the same text-size ratios as the live page
+    const TB = 64, PAD = 23, PNL = 16, SBH = 84, GAP = 26;
     const panelW = SVG_W + PNL * 2, panelH = SVG_H + PNL * 2;
     const W = SVG_W + (PAD + PNL) * 2;
     const sbY = TB + PAD + panelH + GAP;
     const H = sbY + SBH + PAD;
-    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", HEART = state.color;
+    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0";
 
     const clone = svg.cloneNode(true);
     clone.setAttribute("width", SVG_W); clone.setAttribute("height", SVG_H);
@@ -688,39 +683,41 @@
       ctx.translate(M, M);
       ctx.scale(WS, WS);
       ctx.fillStyle = "rgba(67, 48, 31, .3)";
-      ctx.beginPath(); ctx.roundRect(9, 10, W - 3, H - 3, 10); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(10, 11, W - 3, H - 3, 13); ctx.fill();
 
       // window body + clipped title bar
-      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
+      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 13);
       ctx.fillStyle = CREAM; ctx.fill();
       ctx.save(); ctx.clip();
       ctx.fillStyle = muted(state.color); ctx.fillRect(0, 0, W, TB);
-      ctx.fillStyle = BROWN; ctx.fillRect(0, TB - 2, W, 2);
+      ctx.fillStyle = BROWN; ctx.fillRect(0, TB - 3, W, 3);
       ctx.restore();
       ctx.lineWidth = 3; ctx.strokeStyle = BROWN;
-      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 13); ctx.stroke();
 
       // title bar text
       ctx.textBaseline = "middle";
-      ctx.font = "bold 18px 'Courier New', monospace";
+      ctx.font = "bold 29px 'Courier New', monospace";
       ctx.textAlign = "left";
-      ctx.fillStyle = HEART; ctx.fillText("♥", PAD, TB / 2 + 1);
-      ctx.fillStyle = BROWN; ctx.fillText(state.title || "Wellness", PAD + 26, TB / 2 + 1);
-      ctx.textAlign = "right"; ctx.fillText("–  □  ×", W - PAD, TB / 2 + 1);
+      ctx.fillStyle = BROWN; ctx.fillText("♥", PAD, TB / 2 + 2);
+      ctx.fillText(state.title || "Wellness", PAD + 42, TB / 2 + 2);
+      ctx.textAlign = "right"; ctx.fillText("–  □  ×", W - PAD, TB / 2 + 2);
 
       // white canvas panel + chart
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(PAD + 1, TB + PAD + 1, panelW - 2, panelH - 2, 6);
+      ctx.beginPath(); ctx.roundRect(PAD + 1.5, TB + PAD + 1.5, panelW - 3, panelH - 3, 8);
       ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.stroke();
       ctx.drawImage(img, PAD + PNL, TB + PAD + PNL, SVG_W, SVG_H);
 
-      // status bar: retro datetime + location stamp
-      ctx.beginPath(); ctx.roundRect(PAD + 1, sbY, panelW - 2, SBH, 6);
+      // status bar: retro datetime + location stamp, one per line
+      ctx.beginPath(); ctx.roundRect(PAD + 1.5, sbY, panelW - 3, SBH, 8);
       ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
-      ctx.font = "bold 16px 'Courier New', monospace";
+      ctx.font = "bold 24px 'Courier New', monospace";
       ctx.textAlign = "center";
       ctx.fillStyle = BROWN;
-      ctx.fillText(stampStr, W / 2, sbY + SBH / 2 + 1);
+      const rows = lines.filter(Boolean);
+      rows.forEach((ln, i) => {
+        ctx.fillText(ln, W / 2, sbY + SBH / 2 + 2 + (i - (rows.length - 1) / 2) * 34);
+      });
 
       URL.revokeObjectURL(url);
       canvas.toBlob(done, "image/png");
@@ -732,7 +729,7 @@
     // open the tab synchronously so popup blockers allow it, then point it
     // at the rendered image; the stamp is the moment of the click
     const tab = window.open("", "_blank");
-    windowPNG(stampText(), png => {
+    windowPNG(stampLines(), png => {
       const url = URL.createObjectURL(png);
       if (tab) tab.location = url;
       else downloadBlob(png, slug() + ".png"); // popup blocked — download instead
