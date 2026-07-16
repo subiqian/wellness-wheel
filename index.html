@@ -158,6 +158,19 @@
     opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20;
   }
   #toast.show { opacity: 1; }
+
+  /* cute explainer popup for "estimated functionality" */
+  #tip {
+    position: fixed; z-index: 30; max-width: 280px;
+    background: var(--cream); color: var(--brown);
+    font: bold 13px "Courier New", Courier, monospace;
+    line-height: 1.45;
+    padding: 10px 13px;
+    border: 2px solid var(--brown); border-radius: 5px;
+    box-shadow: 3px 4px 0 rgba(67, 48, 31, .4);
+    opacity: 0; transition: opacity .15s; pointer-events: none;
+  }
+  #tip.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -209,6 +222,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="tip" role="tooltip"></div>
 
 <script>
 (() => {
@@ -383,26 +397,47 @@
 
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
 
-    // overall block on the chart (top-left): mean score, then the min/max
-    // shaded area these values could produce across axis orderings, as a
-    // share of the full all-5s polygon — the word reads bigger than the
-    // 22px pillar labels, the score bigger still
+    // overall block on the chart (top-left): mean score, plus "estimated
+    // functionality" — the min-max shaded area these values could produce
+    // across axis orderings, as a share of the full all-5s polygon. White
+    // halo keeps the text clean where it crosses the grid hairlines.
     const [aMin, aMax] = areaBounds(state.pillars.map(p => p.value));
     const pct = x => Math.round(x * 100) + "%";
-    const oLbl = el("text", { x: 24, y: 50, fill: t.ink2, "font-size": 32,
-      "font-weight": "bold", "font-family": FONT });
-    oLbl.textContent = "overall";
-    const oVal = el("text", { x: 24, y: 98, fill: t.ink, "font-size": 44,
-      "font-weight": "bold", "font-family": FONT });
-    oVal.textContent = avg.toFixed(1) + "/5";
-    svg.append(oLbl, oVal);
-    ["min area " + pct(aMin), "max area " + pct(aMax)].forEach((txt, i) => {
-      const m = el("text", { x: 24, y: 130 + i * 26, fill: t.ink2, "font-size": 20,
-        "font-weight": "bold", "font-family": FONT });
+    const range = pct(aMin) === pct(aMax) ? pct(aMax) : pct(aMin) + "-" + pct(aMax);
+    ["mean wellness score: " + avg.toFixed(1),
+     "estimated",
+     "functionality: " + range].forEach((txt, i) => {
+      const m = el("text", { x: 24, y: 50 + i * 40, fill: t.ink, "font-size": 32,
+        "font-weight": "bold", "font-family": FONT,
+        stroke: "#ffffff", "stroke-width": 7, "paint-order": "stroke" });
       m.textContent = txt;
+      if (i) { // the estimated-functionality lines wear the explainer popup
+        m.style.cursor = "help";
+        m.addEventListener("pointerenter", showTip);
+        m.addEventListener("pointermove", moveTip);
+        m.addEventListener("pointerleave", hideTip);
+      }
       svg.appendChild(m);
     });
   }
+
+  // ---------- "estimated functionality" explainer popup ----------
+  const tipEl = document.getElementById("tip");
+  const TIP_TEXT = "♥ why a range? the mean is purely additive — but shaded area " +
+    "compounds: it sums each pillar × its neighbor, so it never scales neatly " +
+    "with the mean. we lean into that as a metaphor: life's pillars compound " +
+    "on one another, each one scaling the next. the same scores can shade more " +
+    "or less of the full wheel depending on how they sit — this range runs from " +
+    "their worst arrangement to their best.";
+  function moveTip(e) {
+    const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+    if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+    tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+  }
+  function showTip(e) { tipEl.textContent = TIP_TEXT; tipEl.classList.add("show"); moveTip(e); }
+  function hideTip() { tipEl.classList.remove("show"); }
 
   // min & max polygon area over all axis orderings, as a fraction of the
   // full (all-5s) polygon. Area ∝ Σ adjacent-value products — the ½sin(2π/N)
