@@ -192,6 +192,9 @@
         <ul class="pillars" id="pillar-list"></ul>
         <button class="pcbtn" id="add-pillar">+ add pillar</button>
         <div class="actions">
+          <button class="pcbtn" id="save" title="Save — screenshot + CSV record" aria-label="Save screenshot and CSV record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
           <button class="pcbtn" id="share" hidden title="Share" aria-label="Share">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           </button>
@@ -224,8 +227,8 @@
   };
 
   // ---------- state ----------
-  // bold colors only, straight from the sample aesthetic
-  const SWATCHES = ["#e0546c", "#e8872b", "#e3a51f", "#a9c23f", "#2f9e85", "#2aa8b8", "#3d7fc4", "#8a63c5"];
+  // bold colors only, sample-aesthetic adjacent, tuned a touch more vibrant
+  const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
   const STORE_KEY = "wellness-wheel-v2";
   const FIXED = ["Mental Health", "Productivity", "Sociability", "Physical Health"];
@@ -616,7 +619,16 @@
   }
 
   // PNG export: the whole chart window — title bar, cream frame, chart, retro stamp
-  document.getElementById("download").addEventListener("click", () => {
+  function downloadBlob(blob, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+  const slug = () => (state.title || "wellness-wheel").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  function windowPNG(stampStr, done) {
     const SCALE = 2, SVG_W = 840, SVG_H = 640;
     const TB = 48, PAD = 18, PNL = 10, SBH = 38, GAP = 14;
     const panelW = SVG_W + PNL * 2, panelH = SVG_H + PNL * 2;
@@ -667,7 +679,7 @@
       ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
       ctx.font = "bold 16px 'Courier New', monospace";
       ctx.textAlign = "left";
-      const stamp = " " + stampText() + " ";
+      const stamp = " " + stampStr + " ";
       const wTxt = ctx.measureText(stamp).width;
       const wHrt = ctx.measureText("♥").width;
       let sx = (W - (wTxt + wHrt * 2)) / 2;
@@ -677,15 +689,89 @@
       ctx.fillStyle = HEART; ctx.fillText("♥", sx, midY);
 
       URL.revokeObjectURL(url);
-      canvas.toBlob(png => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(png);
-        a.download = (state.title || "wellness-wheel").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".png";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      }, "image/png");
+      canvas.toBlob(done, "image/png");
     };
     img.src = url;
+  }
+
+  document.getElementById("download").addEventListener("click", () => {
+    windowPNG(stampText(), png => downloadBlob(png, slug() + ".png"));
+  });
+
+  // ---------- save: screenshot + CSV record, written into the saves folder ----------
+  // (File System Access API — the folder handle persists in IndexedDB;
+  //  browsers without it just get both files as downloads)
+  const LOG_KEY = "wellness-wheel-log";
+  function idb(mode, cb) {
+    const req = indexedDB.open("ww-fs", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("kv");
+    req.onsuccess = () => cb(req.result.transaction("kv", mode).objectStore("kv"));
+  }
+  const saveHandle = h => idb("readwrite", s => s.put(h, "dir"));
+  const loadHandle = () => new Promise(res => {
+    try {
+      idb("readonly", s => {
+        const g = s.get("dir");
+        g.onsuccess = () => res(g.result || null);
+        g.onerror = () => res(null);
+      });
+    } catch (e) { res(null); }
+  });
+  async function getSaveDir() {
+    if (!window.showDirectoryPicker) return null;
+    let dir = await loadHandle();
+    if (dir) {
+      let p = await dir.queryPermission({ mode: "readwrite" });
+      if (p !== "granted") p = await dir.requestPermission({ mode: "readwrite" });
+      if (p !== "granted") dir = null;
+    }
+    if (!dir) {
+      dir = await window.showDirectoryPicker({ id: "wellness-saves", mode: "readwrite" });
+      saveHandle(dir);
+    }
+    return dir;
+  }
+  async function writeFile(dir, name, blob) {
+    const fh = await dir.getFileHandle(name, { create: true });
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+  }
+
+  document.getElementById("save").addEventListener("click", () => {
+    const full = stampText(); // frozen once — screenshot and CSV share this exact stamp
+    const [datetime, loc] = full.split(" · ");
+    const overall = (state.pillars.reduce((s, p) => s + p.value, 0) / state.pillars.length).toFixed(1);
+    const byName = n => { const p = state.pillars.find(x => x.name === n); return p ? p.value : ""; };
+    const extras = state.pillars.slice(FIXED.length).map(p => p.name + "=" + p.value).join("; ");
+    const row = [datetime, loc || "", state.title, state.color, overall, ...FIXED.map(byName), extras];
+
+    let log = [];
+    try { log = JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch (e) {}
+    log.push(row);
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch (e) {}
+
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const header = ["datetime", "location", "title", "color", "overall",
+      ...FIXED.map(n => n.toLowerCase().replace(/ /g, "_")), "extra_pillars"];
+    const csv = [header, ...log].map(r => r.map(esc).join(",")).join("\r\n");
+    const csvBlob = new Blob([csv], { type: "text/csv" });
+    const pngName = slug() + "-" + datetime.replace(/\//g, "-").replace(/:/g, "").replace(/ /g, "_") + ".png";
+
+    windowPNG(full, async png => {
+      try {
+        const dir = await getSaveDir();
+        if (dir) {
+          await writeFile(dir, pngName, png);
+          await writeFile(dir, "wellness-log.csv", csvBlob);
+          toast("saved to folder ♥ " + log.length + " record" + (log.length === 1 ? "" : "s"));
+          return;
+        }
+      } catch (e) { /* picker cancelled or write failed — fall back to downloads */ }
+      downloadBlob(png, pngName);
+      downloadBlob(csvBlob, "wellness-log.csv");
+      toast("saved ♥ " + log.length + " record" + (log.length === 1 ? "" : "s"));
+    });
   });
 
   document.getElementById("reset").addEventListener("click", () => {
