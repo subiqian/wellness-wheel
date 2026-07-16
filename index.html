@@ -490,25 +490,26 @@
       renderList(); // hearts follow the drag
     }
   }
-  // a drag may only start ON the drawn shape: near one of its points, or
-  // inside the polygon itself — clicks anywhere else change nothing
-  function onShape(q) {
+  // a drag may start anywhere on the 0–5 grid: inside the outer ring, or
+  // near a data vertex (which can sit right on the edge) — clicks beyond
+  // the grid change nothing
+  function onGrid(q) {
     const n = viewOrder.length;
     for (let i = 0; i < n; i++) {
       const [vx, vy] = pt(i, viewOrder[i].value);
       if (Math.hypot(q.x - vx, q.y - vy) < 22) return true; // grab a vertex
     }
-    let inside = false; // ray-cast against the polygon
+    let inside = false; // ray-cast against the outer (value 5) grid polygon
     for (let i = 0, j = n - 1; i < n; j = i++) {
-      const [xi, yi] = pt(i, viewOrder[i].value);
-      const [xj, yj] = pt(j, viewOrder[j].value);
+      const [xi, yi] = pt(i, MAX_VAL);
+      const [xj, yj] = pt(j, MAX_VAL);
       if ((yi > q.y) !== (yj > q.y) && q.x < (xj - xi) * (q.y - yi) / (yj - yi) + xi) inside = !inside;
     }
     return inside;
   }
   svg.addEventListener("pointerdown", evt => {
     const q = svgPoint(evt);
-    if (!onShape(q)) return;
+    if (!onGrid(q)) return;
     dragging = nearestSpoke(evt);
     svg.setPointerCapture(evt.pointerId);
     dragValue(evt);
