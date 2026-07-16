@@ -645,7 +645,7 @@
   const slug = () => (state.title || "wellness").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   function windowPNG(lines, done) {
-    const SCALE = 2, SVG_W = 840, SVG_H = 640;
+    const SCALE = 1, SVG_W = 840, SVG_H = 640; // 1× ≈ 750px wide — 2× rendered huge in chats
     // the chart draws at its full 840 internal width here — on screen it is
     // scaled down to ~62% — so all chrome (bars, fonts, radii) is ×1.6 its
     // on-screen CSS size to keep the same text-size ratios as the live page
