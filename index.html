@@ -141,6 +141,10 @@
   }
   .statusbar .heart { color: var(--heart); }
   .stamp { text-align: center; letter-spacing: 1px; }
+  .loc {
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; padding: 0 2px; line-height: 1;
+  }
   .key { margin: 0 0 14px; text-align: center; }
 
   #toast {
@@ -325,14 +329,6 @@
       const [x, y] = pt(i, MAX_VAL);
       svg.appendChild(el("line", { x1: CX, y1: CY, x2: x, y2: y, stroke: t.grid, "stroke-width": 1.2 }));
     }
-    // ring value labels along the top spoke
-    for (let v = 1; v <= MAX_VAL; v++) {
-      const lbl = el("text", { x: CX + 9, y: CY - (v / MAX_VAL) * R + 4, fill: t.muted,
-        "font-size": 14, "font-family": FONT });
-      lbl.textContent = v;
-      svg.appendChild(lbl);
-    }
-
     // data polygon
     const poly = ordered.map((p, i) => pt(i, p.value).join(",")).join(" ");
     svg.appendChild(el("polygon", { points: poly, fill: rgba(series, t.fillAlpha), stroke: series,
@@ -525,10 +521,15 @@
   });
 
   // ---------- retro datetime + location stamp ----------
-  // starts as the timezone city, upgrades to the real city once
-  // geolocation is granted and reverse-geocoded
-  const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
-  let city = tz.includes("/") ? tz.split("/").pop().replace(/_/g, " ") : tz;
+  // default "location" is the official time-zone name (e.g. "Eastern Daylight
+  // Time") — a real city only ever appears via the opt-in 📍 link
+  let city = "";
+  try {
+    city = new Intl.DateTimeFormat("en", { timeZoneName: "long" })
+      .formatToParts(new Date()).find(p => p.type === "timeZoneName").value;
+  } catch (e) {
+    city = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+  }
 
   function stampText() {
     const now = new Date();
@@ -540,19 +541,24 @@
     const time = pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
     return date + " " + time + (city ? " · " + city : "");
   }
+  // precise location is strictly OPT-IN: nothing is requested until the 📍
+  // link is clicked (the coordinates go to BigDataCloud once, to be turned
+  // into a city name; only the name is kept, in this browser)
+  let preciseCity = null;
+  try { preciseCity = localStorage.getItem("ww-city"); } catch (e) {}
+  if (preciseCity) city = preciseCity;
+
   const stampEl = document.getElementById("stamp");
   const renderStamp = () => {
-    stampEl.innerHTML = '<span class="heart">♥</span> ' + stampText() + ' <span class="heart">♥</span>';
+    stampEl.innerHTML = '<span class="heart">♥</span> ' + stampText() + ' <span class="heart">♥</span>' +
+      (preciseCity ? "" : ' <button class="loc" id="loc-btn" title="Add my precise location (asks permission, sent once to a geocoding service)">📍</button>');
   };
   renderStamp();
   setInterval(renderStamp, 30000);
 
-  (function locate() {
-    try {
-      const cached = localStorage.getItem("ww-city");
-      if (cached) { city = cached; renderStamp(); }
-    } catch (e) {}
-    if (!navigator.geolocation) return;
+  stampEl.addEventListener("click", e => {
+    if (!e.target.closest || !e.target.closest("#loc-btn")) return;
+    if (!navigator.geolocation) return toast("location not available here");
     navigator.geolocation.getCurrentPosition(async pos => {
       try {
         const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" +
@@ -562,13 +568,16 @@
         // broader city ("New York")
         const c = j.locality || j.city || j.principalSubdivision;
         if (c) {
+          preciseCity = c;
           city = c;
-          try { localStorage.setItem("ww-city", c); } catch (e) {}
+          try { localStorage.setItem("ww-city", c); } catch (e2) {}
           renderStamp();
-        }
-      } catch (e) { /* offline or API down — keep the fallback */ }
-    }, () => { /* denied — keep the timezone fallback */ }, { timeout: 8000, maximumAge: 3600000 });
-  })();
+          toast("location added ♥");
+        } else toast("couldn't find your city");
+      } catch (e2) { toast("couldn't find your city"); }
+    }, () => toast("location not shared — keeping " + city),
+      { timeout: 8000, maximumAge: 3600000 });
+  });
 
   // ---------- title & color ----------
   const titleInput = document.getElementById("title-input");
