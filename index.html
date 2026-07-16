@@ -239,7 +239,7 @@
   function defaults() {
     return {
       title: "",
-      color: DEFAULT_COLOR,
+      color: SWATCHES[Math.floor(Math.random() * SWATCHES.length)], // every fresh wheel wears a random color
       pillars: FIXED.map(name => ({ name, value: 3 }))
     };
   }
