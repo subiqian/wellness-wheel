@@ -383,8 +383,12 @@
 
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
 
-    // overall score on the chart itself (top-left corner) — the word reads
-    // bigger than the 22px pillar labels, the score bigger still
+    // overall block on the chart (top-left): mean score, then the min/max
+    // shaded area these values could produce across axis orderings, as a
+    // share of the full all-5s polygon — the word reads bigger than the
+    // 22px pillar labels, the score bigger still
+    const [aMin, aMax] = areaBounds(state.pillars.map(p => p.value));
+    const pct = x => Math.round(x * 100) + "%";
     const oLbl = el("text", { x: 24, y: 50, fill: t.ink2, "font-size": 32,
       "font-weight": "bold", "font-family": FONT });
     oLbl.textContent = "overall";
@@ -392,6 +396,32 @@
       "font-weight": "bold", "font-family": FONT });
     oVal.textContent = avg.toFixed(1) + "/5";
     svg.append(oLbl, oVal);
+    ["min area " + pct(aMin), "max area " + pct(aMax)].forEach((txt, i) => {
+      const m = el("text", { x: 24, y: 130 + i * 26, fill: t.ink2, "font-size": 20,
+        "font-weight": "bold", "font-family": FONT });
+      m.textContent = txt;
+      svg.appendChild(m);
+    });
+  }
+
+  // min & max polygon area over all axis orderings, as a fraction of the
+  // full (all-5s) polygon. Area ∝ Σ adjacent-value products — the ½sin(2π/N)
+  // factor cancels in the ratio — so brute-force the cyclic orderings with
+  // the first value pinned (rotations don't change the sum; ≤6! = 720 perms)
+  function areaBounds(vals) {
+    let min = Infinity, max = -Infinity;
+    const perm = (rest, ring) => {
+      if (!rest.length) {
+        let s = 0;
+        for (let i = 0; i < ring.length; i++) s += ring[i] * ring[(i + 1) % ring.length];
+        min = Math.min(min, s); max = Math.max(max, s);
+        return;
+      }
+      for (let i = 0; i < rest.length; i++)
+        perm(rest.slice(0, i).concat(rest.slice(i + 1)), ring.concat(rest[i]));
+    };
+    perm(vals.slice(1), [vals[0]]);
+    return [min, max].map(s => s / (MAX_VAL * MAX_VAL * vals.length));
   }
 
   // ---------- pillar list ----------
