@@ -361,6 +361,8 @@
   }
   function persist() {
     history.replaceState(null, "", encodeHash(state));
+    // the wheel changed since the last copy — invite a fresh copy & share
+    document.getElementById("copy").classList.remove("clicked");
   }
 
   let state = load();
