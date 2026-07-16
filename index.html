@@ -192,11 +192,8 @@
         <ul class="pillars" id="pillar-list"></ul>
         <button class="pcbtn" id="add-pillar">+ add pillar</button>
         <div class="actions">
-          <button class="pcbtn" id="share" hidden title="Share" aria-label="Share">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          </button>
-          <button class="pcbtn" id="download" title="Download PNG" aria-label="Download PNG">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <button class="pcbtn" id="shot" title="Screenshot — opens in a new tab" aria-label="Screenshot, opens in a new tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </button>
           <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
@@ -606,16 +603,7 @@
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
 
-  const shareBtn = document.getElementById("share");
-  if (navigator.share) {
-    shareBtn.hidden = false;
-    shareBtn.addEventListener("click", () => {
-      persist();
-      navigator.share({ title: state.title || "Wellness", url: location.href }).catch(() => {});
-    });
-  }
-
-  // PNG export: the whole chart window — title bar, cream frame, chart, retro stamp
+  // PNG screenshot: the chart window on the gradient desktop — opens in a new tab
   function downloadBlob(blob, name) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -641,11 +629,25 @@
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
+      const M = 64; // desktop background margin around the window
       const canvas = document.createElement("canvas");
-      canvas.width = W * SCALE;
-      canvas.height = H * SCALE;
+      canvas.width = (W + M * 2) * SCALE;
+      canvas.height = (H + M * 2) * SCALE;
       const ctx = canvas.getContext("2d");
       ctx.scale(SCALE, SCALE);
+
+      // the lavender→pink desktop behind the window
+      const grad = ctx.createLinearGradient(0, 0, W + M * 2, (H + M * 2) * 0.9);
+      grad.addColorStop(0, "#b7b0e8");
+      grad.addColorStop(0.6, "#eeb4ce");
+      grad.addColorStop(1, "#f2bccb");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W + M * 2, H + M * 2);
+
+      // the window's solid offset shadow, then the window itself
+      ctx.fillStyle = "rgba(67, 48, 31, .3)";
+      ctx.beginPath(); ctx.roundRect(M + 7, M + 8, W - 3, H - 3, 10); ctx.fill();
+      ctx.translate(M, M);
 
       // window body + clipped title bar
       ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
@@ -691,8 +693,16 @@
     img.src = url;
   }
 
-  document.getElementById("download").addEventListener("click", () => {
-    windowPNG(stampText(), png => downloadBlob(png, slug() + ".png"));
+  document.getElementById("shot").addEventListener("click", () => {
+    // open the tab synchronously so popup blockers allow it, then point it
+    // at the rendered image; the stamp is the moment of the click
+    const tab = window.open("", "_blank");
+    windowPNG(stampText(), png => {
+      const url = URL.createObjectURL(png);
+      if (tab) tab.location = url;
+      else downloadBlob(png, slug() + ".png"); // popup blocked — download instead
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
   });
   document.getElementById("reset").addEventListener("click", () => {
     state = defaults();
