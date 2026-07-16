@@ -141,6 +141,17 @@
     border: 2px solid var(--brown); border-radius: 5px;
   }
   .heart { color: var(--brown); } /* text hearts wear the ink color */
+  .metrics { margin: 0 0 16px; } /* scores bar sits above the chart */
+  /* short note cell — same look as the stamp bar, max 2 lines */
+  textarea.note {
+    display: block; width: 100%;
+    font: bold 15px "Courier New", Courier, monospace;
+    text-align: center; resize: none; overflow: hidden;
+    color: var(--brown);
+    outline: none;
+  }
+  textarea.note::placeholder { color: rgba(67,48,31,.5); }
+  .fn { cursor: help; } /* estimated functionality carries the explainer popup */
   .stamp { text-align: center; letter-spacing: 1px; }
   .loc {
     background: none; border: none; cursor: pointer;
@@ -184,6 +195,7 @@
         <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
+        <div class="statusbar stamp metrics" id="metrics"></div>
         <div class="chart-row">
           <div class="canvas-panel">
             <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
@@ -197,6 +209,7 @@
             </button>
           </div>
         </div>
+        <textarea id="note" class="statusbar note" rows="2" maxlength="110" placeholder="note..." aria-label="Note"></textarea>
         <div class="statusbar stamp" id="stamp"></div>
       </div>
     </div>
@@ -253,6 +266,7 @@
   function defaults() {
     return {
       title: "",
+      note: "",
       color: SWATCHES[Math.floor(Math.random() * SWATCHES.length)], // every fresh wheel wears a random color
       pillars: FIXED.map(name => ({ name, value: 3 }))
     };
@@ -274,6 +288,7 @@
     });
     return {
       title: String(s.title || "").slice(0, 60),
+      note: String(s.note || "").split("\n").slice(0, 2).join("\n").slice(0, 110),
       color,
       pillars: pillars.concat(incoming.slice(0, MAX_PILLARS - FIXED.length))
     };
@@ -283,7 +298,7 @@
     return decodeHash(location.hash) || defaults();
   }
   function encodeHash(s) {
-    const json = JSON.stringify([s.title, s.color, s.pillars.map(p => [p.name, p.value])]);
+    const json = JSON.stringify([s.title, s.color, s.pillars.map(p => [p.name, p.value]), s.note]);
     return "#" + btoa(String.fromCharCode(...new TextEncoder().encode(json)))
       .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
@@ -293,10 +308,10 @@
       const b64 = hash.slice(1).replace(/-/g, "+").replace(/_/g, "/");
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const parsed = JSON.parse(new TextDecoder().decode(bytes));
-      // current format: [title, color, rows] — older links: [title, rows]; extra row fields ignored
-      const [title, color, rows] = parsed.length === 3 ? parsed : [parsed[0], DEFAULT_COLOR, parsed[1]];
+      // current format: [title, color, rows, note] — older links may lack note or color
+      const [title, color, rows, note] = parsed.length >= 3 ? parsed : [parsed[0], DEFAULT_COLOR, parsed[1]];
       if (!Array.isArray(rows)) return null;
-      return sanitize({ title, color, pillars: rows.map(([name, value]) => ({ name, value })) });
+      return sanitize({ title, color, note, pillars: rows.map(([name, value]) => ({ name, value })) });
     } catch (e) { return null; }
   }
   function persist() {
@@ -395,30 +410,26 @@
       svg.appendChild(g);
     });
 
-    const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
+    // scores live in the cream bar above the chart (see #metrics)
+    const [m1, m2] = metricsLines();
+    const mBar = document.getElementById("metrics");
+    mBar.innerHTML = m1 + "<br>" + '<span class="fn">' + m2 + "</span>";
+    const fn = mBar.querySelector(".fn"); // explainer popup on hover
+    fn.addEventListener("pointerenter", showTip);
+    fn.addEventListener("pointermove", moveTip);
+    fn.addEventListener("pointerleave", hideTip);
+  }
 
-    // overall block on the chart (top-left): mean score, plus "estimated
-    // functionality" — the min-max shaded area these values could produce
-    // across axis orderings, as a share of the full all-5s polygon. White
-    // halo keeps the text clean where it crosses the grid hairlines.
+  // mean score + estimated functionality: the min-max shaded area these
+  // values could produce across axis orderings, as a share of the full
+  // all-5s polygon
+  function metricsLines() {
+    const avg = state.pillars.reduce((s, p) => s + p.value, 0) / state.pillars.length;
     const [aMin, aMax] = areaBounds(state.pillars.map(p => p.value));
     const pct = x => Math.round(x * 100) + "%";
     const range = pct(aMin) === pct(aMax) ? pct(aMax) : pct(aMin) + "-" + pct(aMax);
-    ["mean wellness score: " + avg.toFixed(1),
-     "estimated",
-     "functionality: " + range].forEach((txt, i) => {
-      const m = el("text", { x: 24, y: 50 + i * 40, fill: t.ink, "font-size": 32,
-        "font-weight": "bold", "font-family": FONT,
-        stroke: "#ffffff", "stroke-width": 7, "paint-order": "stroke" });
-      m.textContent = txt;
-      if (i) { // the estimated-functionality lines wear the explainer popup
-        m.style.cursor = "help";
-        m.addEventListener("pointerenter", showTip);
-        m.addEventListener("pointermove", moveTip);
-        m.addEventListener("pointerleave", hideTip);
-      }
-      svg.appendChild(m);
-    });
+    return ["mean wellness score: " + avg.toFixed(1),
+            "estimated functionality: " + range];
   }
 
   // ---------- "estimated functionality" explainer popup ----------
@@ -664,10 +675,36 @@
       { timeout: 8000, maximumAge: 3600000 });
   });
 
-  // ---------- title & color ----------
+  // ---------- title, note & color ----------
   const titleInput = document.getElementById("title-input");
   titleInput.value = state.title;
   titleInput.addEventListener("input", () => { state.title = titleInput.value; persist(); });
+
+  const noteEl = document.getElementById("note");
+  noteEl.value = state.note;
+  noteEl.addEventListener("input", () => {
+    const lines = noteEl.value.split("\n");
+    if (lines.length > 2) noteEl.value = lines.slice(0, 2).join("\n"); // max 2 lines
+    state.note = noteEl.value;
+    persist();
+  });
+
+  // the note as up to 2 export lines: manual break respected, else word-wrapped
+  function noteLines() {
+    const note = state.note.trim();
+    if (!note) return [];
+    const wrap = (str, max) => {
+      const out = [];
+      let cur = "";
+      for (const w of str.split(/\s+/)) {
+        if (cur && (cur + " " + w).length > max) { out.push(cur); cur = w; }
+        else cur = cur ? cur + " " + w : w;
+      }
+      if (cur) out.push(cur);
+      return out;
+    };
+    return note.split("\n").flatMap(seg => wrap(seg, 56)).slice(0, 2);
+  }
 
   function renderSwatches() {
     const box = document.getElementById("swatches");
@@ -714,11 +751,15 @@
     // the chart draws at its full 840 internal width here — on screen it is
     // scaled down to ~62% — so all chrome (bars, fonts, radii) is ×1.6 its
     // on-screen CSS size to keep the same text-size ratios as the live page
-    const TB = 64, PAD = 23, PNL = 16, SBH = 84, GAP = 26;
+    const TB = 64, PAD = 23, PNL = 16, BARH = 84, GAP = 26;
     const panelW = SVG_W + PNL * 2, panelH = SVG_H + PNL * 2;
     const W = SVG_W + (PAD + PNL) * 2;
-    const sbY = TB + PAD + panelH + GAP;
-    const H = sbY + SBH + PAD;
+    const noteRows = noteLines();
+    const mbY = TB + PAD;                                  // metrics bar
+    const panelY = mbY + BARH + GAP;                       // chart panel
+    const nbY = panelY + panelH + GAP;                     // note bar (only if written)
+    const sbY = noteRows.length ? nbY + BARH + GAP : nbY;  // stamp bar
+    const H = sbY + BARH + PAD;
     const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0";
 
     const clone = svg.cloneNode(true);
@@ -769,21 +810,26 @@
       ctx.fillText(state.title || "Wellness", PAD + 42, TB / 2 + 2);
       ctx.textAlign = "right"; ctx.fillText("–  □  ×", W - PAD, TB / 2 + 2);
 
-      // white canvas panel + chart
-      ctx.beginPath(); ctx.roundRect(PAD + 1.5, TB + PAD + 1.5, panelW - 3, panelH - 3, 8);
-      ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.stroke();
-      ctx.drawImage(img, PAD + PNL, TB + PAD + PNL, SVG_W, SVG_H);
+      // cream text bars: metrics above the chart, note + stamp below
+      const drawBar = (y, rows) => {
+        ctx.beginPath(); ctx.roundRect(PAD + 1.5, y, panelW - 3, BARH, 8);
+        ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
+        ctx.font = "bold 24px 'Courier New', monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = BROWN;
+        rows.forEach((ln, i) => {
+          ctx.fillText(ln, W / 2, y + BARH / 2 + 2 + (i - (rows.length - 1) / 2) * 34);
+        });
+      };
+      drawBar(mbY, metricsLines());
 
-      // status bar: retro datetime + location stamp, one per line
-      ctx.beginPath(); ctx.roundRect(PAD + 1.5, sbY, panelW - 3, SBH, 8);
-      ctx.fillStyle = CREAM2; ctx.fill(); ctx.stroke();
-      ctx.font = "bold 24px 'Courier New', monospace";
-      ctx.textAlign = "center";
-      ctx.fillStyle = BROWN;
-      const rows = lines.filter(Boolean);
-      rows.forEach((ln, i) => {
-        ctx.fillText(ln, W / 2, sbY + SBH / 2 + 2 + (i - (rows.length - 1) / 2) * 34);
-      });
+      // white canvas panel + chart
+      ctx.beginPath(); ctx.roundRect(PAD + 1.5, panelY + 1.5, panelW - 3, panelH - 3, 8);
+      ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.stroke();
+      ctx.drawImage(img, PAD + PNL, panelY + PNL, SVG_W, SVG_H);
+
+      if (noteRows.length) drawBar(nbY, noteRows);
+      drawBar(sbY, lines.filter(Boolean));
 
       URL.revokeObjectURL(url);
       canvas.toBlob(done, "image/png");
@@ -805,6 +851,7 @@
   document.getElementById("reset").addEventListener("click", () => {
     state = defaults();
     titleInput.value = "";
+    noteEl.value = "";
     renderSwatches(); renderList(); persist();
     toast("reset ♥");
   });
