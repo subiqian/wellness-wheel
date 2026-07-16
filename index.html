@@ -31,7 +31,8 @@
   }
   .wrap { max-width: 880px; margin: 0 auto; }
   .layout { display: flex; flex-direction: column; gap: 26px; }
-  .layout .window:last-child { width: 100%; max-width: 520px; margin: 0 auto; }
+  /* both windows share the same width — the chart never scales wider than wellness.exe */
+  .layout .window { width: 100%; max-width: 640px; margin: 0 auto; }
 
   /* window chrome: flat cream, brown outline, solid offset shadow */
   .window {
@@ -99,17 +100,14 @@
   .pillars input.name:hover, .pillars input.name:focus { border-bottom-color: var(--brown); }
   .pillars input.name::placeholder { color: rgba(67,48,31,.5); }
 
-  /* heart ratings — click the nth heart; click it again to clear to 0 */
+  /* heart ratings — one SVG shape for filled & empty, so hearts never change
+     shape when clicked; click the nth heart, click it again to clear to 0 */
   .hearts { display: flex; flex: none; }
   .hrt {
     background: none; border: none; cursor: pointer;
-    font-size: 21px; line-height: 1; padding: 0 1px;
-    color: var(--brown);
+    padding: 0 2px; line-height: 0;
   }
-  .hrt.filled {
-    color: #ec6f8e;
-    -webkit-text-stroke: 1.2px var(--brown);
-  }
+  .hrt svg { width: 22px; height: 22px; }
 
   /* raised cream buttons with solid offset shadow, pressed-in on click */
   .pcbtn {
@@ -143,6 +141,7 @@
   }
   .statusbar .heart { color: var(--heart); }
   .stamp { text-align: center; letter-spacing: 1px; }
+  .key { margin: 0 0 14px; text-align: center; }
 
   #toast {
     position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
@@ -189,12 +188,10 @@
             <div class="swatches" id="swatches" role="radiogroup" aria-label="Chart color"></div>
           </div>
         </div>
+        <div class="statusbar key"><span class="heart">♥</span> 0 = struggling · 5 = thriving <span class="heart">♥</span></div>
         <ul class="pillars" id="pillar-list"></ul>
         <button class="pcbtn" id="add-pillar">+ add pillar</button>
         <div class="actions">
-          <button class="pcbtn" id="copy-link" title="Copy share link" aria-label="Copy share link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          </button>
           <button class="pcbtn" id="share" hidden title="Share" aria-label="Share">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           </button>
@@ -205,7 +202,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
           </button>
         </div>
-        <div class="statusbar"><span class="heart">♥</span> 0 = struggling · 5 = thriving <span class="heart">♥</span></div>
       </div>
     </div>
 
@@ -418,10 +414,12 @@
       hearts.className = "hearts";
       hearts.setAttribute("role", "radiogroup");
       hearts.setAttribute("aria-label", p.name + " score");
+      const HEART_PATH = "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z";
       for (let n = 1; n <= MAX_VAL; n++) {
         const hrt = document.createElement("button");
-        hrt.className = "hrt" + (n <= p.value ? " filled" : "");
-        hrt.textContent = n <= p.value ? "♥" : "♡";
+        hrt.className = "hrt";
+        hrt.innerHTML = '<svg viewBox="0 0 24 24" fill="' + (n <= p.value ? "#ec6f8e" : "none") +
+          '" stroke="#43301f" stroke-width="2" stroke-linejoin="round"><path d="' + HEART_PATH + '"/></svg>';
         hrt.setAttribute("aria-label", p.name + ": " + n + " of " + MAX_VAL);
         hrt.setAttribute("role", "radio");
         hrt.setAttribute("aria-checked", String(n === p.value));
@@ -539,16 +537,6 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
-
-  document.getElementById("copy-link").addEventListener("click", async () => {
-    persist();
-    try {
-      await navigator.clipboard.writeText(location.href);
-      toast("link copied ♥");
-    } catch (e) {
-      prompt("Copy this link:", location.href);
-    }
-  });
 
   const shareBtn = document.getElementById("share");
   if (navigator.share) {
