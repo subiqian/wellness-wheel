@@ -464,6 +464,11 @@
   });
 
   // ---------- retro datetime + location stamp ----------
+  // starts as the timezone city, upgrades to the real city once
+  // geolocation is granted and reverse-geocoded
+  const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+  let city = tz.includes("/") ? tz.split("/").pop().replace(/_/g, " ") : tz;
+
   function stampText() {
     const now = new Date();
     const pad = n => String(n).padStart(2, "0");
@@ -472,9 +477,6 @@
     h = h % 12 || 12;
     const date = pad(now.getMonth() + 1) + "/" + pad(now.getDate()) + "/" + now.getFullYear();
     const time = pad(h) + ":" + pad(now.getMinutes()) + " " + ampm;
-    // "location" = the timezone city — no permission prompt needed
-    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
-    const city = tz.includes("/") ? tz.split("/").pop().replace(/_/g, " ") : tz;
     return date + " " + time + (city ? " · " + city : "");
   }
   const stampEl = document.getElementById("stamp");
@@ -483,6 +485,27 @@
   };
   renderStamp();
   setInterval(renderStamp, 30000);
+
+  (function locate() {
+    try {
+      const cached = localStorage.getItem("ww-city");
+      if (cached) { city = cached; renderStamp(); }
+    } catch (e) {}
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try {
+        const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" +
+          pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&localityLanguage=en");
+        const j = await r.json();
+        const c = j.city || j.locality || j.principalSubdivision;
+        if (c) {
+          city = c;
+          try { localStorage.setItem("ww-city", c); } catch (e) {}
+          renderStamp();
+        }
+      } catch (e) { /* offline or API down — keep the fallback */ }
+    }, () => { /* denied — keep the timezone fallback */ }, { timeout: 8000, maximumAge: 3600000 });
+  })();
 
   // ---------- title & color ----------
   const titleInput = document.getElementById("title-input");
