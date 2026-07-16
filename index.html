@@ -151,7 +151,15 @@
     outline: none;
   }
   textarea.note::placeholder { color: rgba(67,48,31,.5); }
-  .fn { cursor: help; } /* estimated functionality carries the explainer popup */
+  .fn { cursor: help; } /* metric lines carry explainer popups */
+  /* little "hover me" badge after each metric line */
+  .fn .qi {
+    display: inline-block; width: 17px; height: 17px; line-height: 14px;
+    margin-left: 5px; text-align: center; vertical-align: 1px;
+    font-size: 11px; font-weight: bold;
+    border: 2px solid var(--brown); border-radius: 50%;
+    background: var(--cream);
+  }
   .stamp { text-align: center; letter-spacing: 1px; }
   .loc {
     background: none; border: none; cursor: pointer;
@@ -415,8 +423,9 @@
     // each line wears its own explainer popup on hover
     const [m1, m2] = metricsLines();
     const mBar = document.getElementById("metrics");
-    mBar.innerHTML = '<span class="fn">' + m1 + "</span><br>" +
-      '<span class="fn">' + m2 + "</span>";
+    const badge = ' <span class="qi" aria-hidden="true">?</span>';
+    mBar.innerHTML = '<span class="fn">' + m1 + badge + "</span><br>" +
+      '<span class="fn">' + m2 + badge + "</span>";
     [TIP_MEAN, TIP_FN].forEach((txt, i) => {
       const span = mBar.querySelectorAll(".fn")[i];
       span.addEventListener("pointerenter", e => showTip(e, txt));
@@ -439,17 +448,17 @@
 
   // ---------- metric explainer popups ----------
   const tipEl = document.getElementById("tip");
-  const TIP_MEAN = "♥ what is average wellness?\n" +
+  const TIP_MEAN = "♥ what is average wellness? ♥\n" +
     "the simple arithmetic mean of your pillars: add up the heart scores, " +
     "divide by the number of pillars. every pillar counts equally — nothing " +
-    "compounds here. ♥";
-  const TIP_FN = "♥ what is estimated functionality?\n" +
+    "compounds here.";
+  const TIP_FN = "♥ what is estimated functionality? ♥\n" +
     "the mean is purely additive — but shaded area " +
     "compounds: it sums each pillar × its neighbor, so it never scales neatly " +
     "with the mean. we lean into that as a metaphor: life's pillars compound " +
     "on one another, each one scaling the next. the same scores can shade more " +
     "or less of the full wheel depending on how they sit — this range runs from " +
-    "their worst arrangement to their best. ♥";
+    "their worst arrangement to their best.";
   function moveTip(e) {
     const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
     let x = e.clientX + pad, y = e.clientY + pad;
