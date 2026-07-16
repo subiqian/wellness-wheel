@@ -25,13 +25,13 @@
     background-attachment: fixed;
     color: var(--brown);
     font-family: "Courier New", Courier, monospace;
-    font-size: 13px;
+    font-size: 14px;
     min-height: 100vh;
     padding: 30px 18px 50px;
   }
-  .wrap { max-width: 1060px; margin: 0 auto; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; }
-  @media (max-width: 840px) { .layout { grid-template-columns: 1fr; } }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .layout { display: flex; flex-direction: column; gap: 26px; }
+  .layout .window:last-child { width: 100%; max-width: 520px; margin: 0 auto; }
 
   /* window chrome: flat cream, brown outline, solid offset shadow */
   .window {
@@ -42,15 +42,15 @@
     box-shadow: 6px 7px 0 rgba(67, 48, 31, .3);
   }
   .titlebar {
-    display: flex; align-items: center; gap: 7px;
-    color: var(--brown); font-weight: bold; font-size: 13px;
-    padding: 5px 10px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--brown); font-weight: bold; font-size: 16px;
+    padding: 7px 12px;
     border-bottom: 2px solid var(--brown);
     user-select: none;
   }
   .titlebar.pink { background: var(--pink); }
   .titlebar.yellow { background: var(--yellow); }
-  .t-btns { margin-left: auto; flex: none; letter-spacing: 5px; font-weight: bold; }
+  .t-btns { margin-left: auto; flex: none; letter-spacing: 10px; font-weight: bold; font-size: 18px; }
   .win-body { padding: 14px; }
 
   /* the diagram sits on white behind a brown outline */
@@ -65,18 +65,18 @@
   /* editable title inside the chart window's title bar */
   #title-input {
     flex: 1; min-width: 0;
-    font: bold 13px "Courier New", Courier, monospace;
+    font: bold 16px "Courier New", Courier, monospace;
     color: var(--brown); background: transparent;
     border: none; outline: none;
     padding: 0;
   }
-  #title-input::placeholder { color: rgba(67,48,31,.55); }
+  #title-input::placeholder { color: var(--brown); }
 
   .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .stat { display: flex; align-items: baseline; gap: 7px; }
   .stat .value { font-size: 27px; font-weight: bold; }
-  .stat .label { font-size: 11px; }
-  .color-pick { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .stat .label { font-size: 12px; font-weight: bold; }
+  .color-pick { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: bold; }
   input[type="color"] {
     width: 34px; height: 26px; padding: 1px; cursor: pointer;
     background: var(--cream-2);
@@ -90,24 +90,26 @@
   .pillars li { display: flex; align-items: center; gap: 7px; }
   .pillars .name { flex: 1; min-width: 0; }
   .pillars span.name { font-weight: bold; padding: 3px 0; }
+  /* editable pillar names look exactly like the fixed ones */
   .pillars input.name {
-    font: 13px "Courier New", Courier, monospace;
+    font: bold 14px "Courier New", Courier, monospace;
     color: var(--brown);
-    background: var(--cream-2);
-    border: 2px solid var(--brown); border-radius: 5px;
-    padding: 3px 6px; outline: none;
+    background: transparent;
+    border: none; border-bottom: 2px solid transparent;
+    padding: 3px 0; outline: none;
   }
-  .pillars input.name:focus { background: #fff; }
+  .pillars input.name:hover, .pillars input.name:focus { border-bottom-color: var(--brown); }
+  .pillars input.name::placeholder { color: rgba(67,48,31,.5); }
 
-  /* star ratings — click the nth star; click it again to clear to 0 */
-  .stars { display: flex; flex: none; }
-  .star {
+  /* heart ratings — click the nth heart; click it again to clear to 0 */
+  .hearts { display: flex; flex: none; }
+  .hrt {
     background: none; border: none; cursor: pointer;
-    font-size: 19px; line-height: 1; padding: 0 1px;
+    font-size: 21px; line-height: 1; padding: 0 1px;
     color: var(--brown);
   }
-  .star.filled {
-    color: var(--star);
+  .hrt.filled {
+    color: #ec6f8e;
     -webkit-text-stroke: 1.2px var(--brown);
   }
 
@@ -136,8 +138,8 @@
 
   .statusbar {
     margin-top: 16px;
-    padding: 4px 9px;
-    font-size: 11px;
+    padding: 5px 10px;
+    font-size: 13px; font-weight: bold;
     background: var(--cream-2);
     border: 2px solid var(--brown); border-radius: 5px;
   }
@@ -228,7 +230,7 @@
   // ---------- state ----------
   const DEFAULT_COLOR = "#ef9aa9";
   const STORE_KEY = "wellness-wheel-v2";
-  const FIXED = ["Mental Health", "Physical Health", "Sociability"];
+  const FIXED = ["Mental Health", "Physical Health", "Sociability", "Productivity"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
   function defaults() {
@@ -325,7 +327,7 @@
     // ring value labels along the top spoke
     for (let v = 1; v <= MAX_VAL; v++) {
       const lbl = el("text", { x: CX + 9, y: CY - (v / MAX_VAL) * R + 4, fill: t.muted,
-        "font-size": 12, "font-family": FONT });
+        "font-size": 13, "font-family": FONT });
       lbl.textContent = v;
       svg.appendChild(lbl);
     }
@@ -342,20 +344,40 @@
         stroke: series, "stroke-width": 3 }));
     });
 
-    // pillar labels (name + value) — ink tokens, never series color
+    // pillar labels (name wrapped onto lines + bold value) — ink tokens, never series color
+    const wrapName = (str, max = 11) => {
+      const lines = [];
+      let cur = "";
+      for (const w of str.split(/\s+/)) {
+        if (cur && (cur + " " + w).length > max) { lines.push(cur); cur = w; }
+        else cur = cur ? cur + " " + w : w;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    };
+    const LH = 25; // line height for the 20px label font
     state.pillars.forEach((p, i) => {
       const a = angle(i);
       const x = CX + LABEL_R * Math.cos(a), y = CY + LABEL_R * Math.sin(a);
       const cos = Math.cos(a), sin = Math.sin(a);
       const anchor = Math.abs(cos) < 0.3 ? "middle" : cos > 0 ? "start" : "end";
-      const dy = sin > 0.85 ? 18 : sin < -0.85 ? -10 : 6;
-      const g = el("text", { x, y: y + dy, "text-anchor": anchor, fill: t.ink2,
-        "font-size": 17, "font-family": FONT });
-      const name = document.createElementNS(NS, "tspan");
-      name.textContent = p.name;
-      const val = el("tspan", { fill: t.ink, "font-weight": "bold", dx: 8 });
+      const lines = wrapName(p.name);
+      // anchor the block so it grows away from the chart: down when below,
+      // up when above, vertically centered at the sides
+      let startDy;
+      if (sin > 0.85) startDy = 22;
+      else if (sin < -0.85) startDy = -12 - (lines.length - 1) * LH;
+      else startDy = 7 - ((lines.length - 1) * LH) / 2;
+      const g = el("text", { x, y: y + startDy, "text-anchor": anchor, fill: t.ink,
+        "font-size": 20, "font-family": FONT });
+      lines.forEach((ln, li) => {
+        const ts = el("tspan", { x, dy: li === 0 ? 0 : LH });
+        ts.textContent = ln;
+        g.appendChild(ts);
+      });
+      const val = el("tspan", { "font-weight": "bold", dx: 9 });
       val.textContent = p.value;
-      g.append(name, val);
+      g.appendChild(val);
       svg.appendChild(g);
     });
 
@@ -389,26 +411,26 @@
         });
       }
 
-      // star rating: click the nth star to set; click the current one to clear
-      const stars = document.createElement("div");
-      stars.className = "stars";
-      stars.setAttribute("role", "radiogroup");
-      stars.setAttribute("aria-label", p.name + " score");
+      // heart rating: click the nth heart to set; click the current one to clear
+      const hearts = document.createElement("div");
+      hearts.className = "hearts";
+      hearts.setAttribute("role", "radiogroup");
+      hearts.setAttribute("aria-label", p.name + " score");
       for (let n = 1; n <= MAX_VAL; n++) {
-        const star = document.createElement("button");
-        star.className = "star" + (n <= p.value ? " filled" : "");
-        star.textContent = n <= p.value ? "★" : "☆";
-        star.setAttribute("aria-label", p.name + ": " + n + " of " + MAX_VAL);
-        star.setAttribute("role", "radio");
-        star.setAttribute("aria-checked", String(n === p.value));
-        star.addEventListener("click", () => {
+        const hrt = document.createElement("button");
+        hrt.className = "hrt" + (n <= p.value ? " filled" : "");
+        hrt.textContent = n <= p.value ? "♥" : "♡";
+        hrt.setAttribute("aria-label", p.name + ": " + n + " of " + MAX_VAL);
+        hrt.setAttribute("role", "radio");
+        hrt.setAttribute("aria-checked", String(n === p.value));
+        hrt.addEventListener("click", () => {
           p.value = (p.value === n) ? 0 : n;
           renderList(); persist();
         });
-        stars.appendChild(star);
+        hearts.appendChild(hrt);
       }
 
-      li.append(nameEl, stars);
+      li.append(nameEl, hearts);
       if (isFixed) {
         const spacer = document.createElement("span");
         spacer.className = "spacer";
