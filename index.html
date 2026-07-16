@@ -464,12 +464,12 @@
   const TIP_MEAN = "♥ what is average wellness? ♥\n" +
     "straightforward arithmetic mean";
   const TIP_FN = "♥ what is estimated functionality? ♥\n" +
-    "the mean is purely additive — but shaded area " +
-    "compounds: it sums each pillar × its neighbor, so it never scales neatly " +
-    "with the mean. we lean into that as a metaphor: life's pillars compound " +
-    "on one another, each one scaling the next. the same scores can shade more " +
-    "or less of the full wheel depending on how they sit — this range runs from " +
-    "their worst arrangement to their best.";
+    "in this visualization, the shaded area compounds depending on the value " +
+    "of its neighbor pillars. the same scores can shade more or less of the " +
+    "full wheel depending on their placements relative to one another. we " +
+    "lean into that metaphor: life's pillars compound on one another, each " +
+    "scaling the others. this range estimate captures their worst to their " +
+    "best arrangement.";
   function moveTip(e) {
     const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
     let x = e.clientX + pad, y = e.clientY + pad;
