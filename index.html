@@ -489,10 +489,25 @@
       renderList(); // hearts follow the drag
     }
   }
+  // a drag may only start ON the drawn shape: near one of its points, or
+  // inside the polygon itself — clicks anywhere else change nothing
+  function onShape(q) {
+    const n = viewOrder.length;
+    for (let i = 0; i < n; i++) {
+      const [vx, vy] = pt(i, viewOrder[i].value);
+      if (Math.hypot(q.x - vx, q.y - vy) < 22) return true; // grab a vertex
+    }
+    let inside = false; // ray-cast against the polygon
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const [xi, yi] = pt(i, viewOrder[i].value);
+      const [xj, yj] = pt(j, viewOrder[j].value);
+      if ((yi > q.y) !== (yj > q.y) && q.x < (xj - xi) * (q.y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
   svg.addEventListener("pointerdown", evt => {
-    // only start a drag inside the wheel — clicks out in the margins do nothing
     const q = svgPoint(evt);
-    if (Math.hypot(q.x - CX, q.y - CY) > R + 26) return;
+    if (!onShape(q)) return;
     dragging = nearestSpoke(evt);
     svg.setPointerCapture(evt.pointerId);
     dragValue(evt);
