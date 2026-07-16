@@ -228,7 +228,7 @@
   const SWATCHES = ["#e75f83", "#d94f2b", "#e8872b", "#e3a51f", "#2f9e85", "#3593b5"];
   const DEFAULT_COLOR = SWATCHES[0];
   const STORE_KEY = "wellness-wheel-v2";
-  const FIXED = ["Mental Health", "Physical Health", "Sociability", "Productivity"];
+  const FIXED = ["Mental Health", "Productivity", "Sociability", "Physical Health"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
   function defaults() {
@@ -536,7 +536,9 @@
         const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" +
           pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&localityLanguage=en");
         const j = await r.json();
-        const c = j.city || j.locality || j.principalSubdivision;
+        // prefer locality (borough/neighborhood, e.g. "Brooklyn") over the
+        // broader city ("New York")
+        const c = j.locality || j.city || j.principalSubdivision;
         if (c) {
           city = c;
           try { localStorage.setItem("ww-city", c); } catch (e) {}
