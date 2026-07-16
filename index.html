@@ -76,7 +76,7 @@
   .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .stat { display: flex; align-items: baseline; gap: 7px; }
   .stat .value { font-size: 30px; font-weight: bold; }
-  .stat .label { font-size: 15px; font-weight: bold; }
+  .stat .label { font-size: 19px; font-weight: bold; } /* bigger than the 16px pillar names */
   .color-pick { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: bold; }
   .swatches { display: flex; gap: 6px; }
   .swatch {
@@ -130,10 +130,10 @@
   .canvas-panel { flex: 1; min-width: 0; }
   .side-actions { display: flex; flex-direction: column; gap: 9px; flex: none; }
   .side-actions .pcbtn {
-    width: 44px; height: 40px;
+    width: 52px; height: 46px;
     display: inline-flex; align-items: center; justify-content: center;
   }
-  .side-actions svg { width: 18px; height: 18px; display: block; }
+  .side-actions svg { width: 26px; height: 26px; display: block; }
 
   .statusbar {
     margin-top: 16px;
@@ -240,7 +240,7 @@
   const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
   const STORE_KEY = "wellness-wheel-v2";
-  const FIXED = ["Mental Health", "Physical Health", "Productivity", "Sociability"];
+  const FIXED = ["Mental", "Physical", "Productivity", "Sociability"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
   function defaults() {
@@ -260,7 +260,9 @@
       value: clampV(p.value)
     }));
     const pillars = FIXED.map(name => {
-      const i = incoming.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+      // older saves/links used "Mental Health" / "Physical Health"
+      const match = n => n === name.toLowerCase() || n === (name + " health").toLowerCase();
+      const i = incoming.findIndex(p => match(p.name.toLowerCase()));
       return { name, value: i >= 0 ? incoming.splice(i, 1)[0].value : 3 };
     });
     return {
@@ -324,10 +326,10 @@
     const series = state.color;
     svg.textContent = "";
     const N = state.pillars.length;
-    // chart order rule: Mental Health at the top (slot 0), Physical Health
-    // always LAST so it sits immediately to the left of the top — extras land in between
+    // chart order rule: Mental at the top (slot 0), Physical always LAST so
+    // it sits immediately to the left of the top — extras land in between
     const ordered = state.pillars.slice();
-    const ph = ordered.findIndex(q => q.name === "Physical Health");
+    const ph = ordered.findIndex(q => q.name === "Physical");
     if (ph >= 0) ordered.push(ordered.splice(ph, 1)[0]);
     viewOrder = ordered;
 
@@ -396,11 +398,12 @@
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / N;
     document.getElementById("avg").textContent = avg.toFixed(1) + "/5";
 
-    // overall score on the chart itself (top-left corner)
-    const oLbl = el("text", { x: 24, y: 40, fill: t.ink2, "font-size": 16,
+    // overall score on the chart itself (top-left corner) — the word reads
+    // bigger than the 22px pillar labels
+    const oLbl = el("text", { x: 24, y: 44, fill: t.ink2, "font-size": 26,
       "font-weight": "bold", "font-family": FONT });
     oLbl.textContent = "overall";
-    const oVal = el("text", { x: 24, y: 74, fill: t.ink, "font-size": 30,
+    const oVal = el("text", { x: 24, y: 82, fill: t.ink, "font-size": 32,
       "font-weight": "bold", "font-family": FONT });
     oVal.textContent = avg.toFixed(1) + "/5";
     svg.append(oLbl, oVal);
