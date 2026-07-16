@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wellness Wheel</title>
+<title>Wellness</title>
 <meta name="description" content="Map your wellness across life's pillars — score, color, and share your wheel.">
 <style>
   :root {
@@ -162,7 +162,7 @@
     <div class="window">
       <div class="titlebar pink">
         <span class="heart" style="color:#d94f2b" aria-hidden="true">♥</span>
-        <input id="title-input" placeholder="my wellness wheel" aria-label="Chart title" maxlength="60">
+        <input id="title-input" placeholder="Wellness" aria-label="Chart title" maxlength="60">
         <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
@@ -614,7 +614,7 @@
     shareBtn.hidden = false;
     shareBtn.addEventListener("click", () => {
       persist();
-      navigator.share({ title: state.title || "my wellness wheel", url: location.href }).catch(() => {});
+      navigator.share({ title: state.title || "Wellness", url: location.href }).catch(() => {});
     });
   }
 
@@ -626,7 +626,7 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
-  const slug = () => (state.title || "wellness-wheel").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const slug = () => (state.title || "wellness").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   function windowPNG(stampStr, done) {
     const SCALE = 2, SVG_W = 840, SVG_H = 640;
@@ -665,7 +665,7 @@
       ctx.font = "bold 18px 'Courier New', monospace";
       ctx.textAlign = "left";
       ctx.fillStyle = HEART; ctx.fillText("♥", PAD, TB / 2 + 1);
-      ctx.fillStyle = BROWN; ctx.fillText(state.title || "my wellness wheel", PAD + 26, TB / 2 + 1);
+      ctx.fillStyle = BROWN; ctx.fillText(state.title || "Wellness", PAD + 26, TB / 2 + 1);
       ctx.textAlign = "right"; ctx.fillText("–  □  ×", W - PAD, TB / 2 + 1);
 
       // white canvas panel + chart
