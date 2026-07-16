@@ -373,7 +373,7 @@
       else if (sin < -0.85) startDy = -12 - (lines.length - 1) * LH;
       else startDy = 7 - ((lines.length - 1) * LH) / 2;
       const g = el("text", { x, y: y + startDy, "text-anchor": anchor, fill: t.ink,
-        "font-size": 22, "font-family": FONT });
+        "font-size": 22, "font-weight": "bold", "font-family": FONT });
       lines.forEach((ln, li) => {
         const ts = el("tspan", { x, dy: li === 0 ? 0 : LH });
         ts.textContent = ln;
