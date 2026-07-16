@@ -179,6 +179,7 @@
     padding: 10px 13px;
     border: 2px solid var(--brown); border-radius: 5px;
     box-shadow: 3px 4px 0 rgba(67, 48, 31, .4);
+    white-space: pre-line; /* question and answer on their own lines */
     opacity: 0; transition: opacity .15s; pointer-events: none;
   }
   #tip.show { opacity: 1; }
@@ -438,15 +439,17 @@
 
   // ---------- metric explainer popups ----------
   const tipEl = document.getElementById("tip");
-  const TIP_MEAN = "♥ what is average wellness? the simple arithmetic mean of " +
-    "your pillars: add up the heart scores, divide by the number of pillars. " +
-    "every pillar counts equally — nothing compounds here.";
-  const TIP_FN = "♥ what is estimated functionality? the mean is purely additive — but shaded area " +
+  const TIP_MEAN = "♥ what is average wellness?\n" +
+    "the simple arithmetic mean of your pillars: add up the heart scores, " +
+    "divide by the number of pillars. every pillar counts equally — nothing " +
+    "compounds here. ♥";
+  const TIP_FN = "♥ what is estimated functionality?\n" +
+    "the mean is purely additive — but shaded area " +
     "compounds: it sums each pillar × its neighbor, so it never scales neatly " +
     "with the mean. we lean into that as a metaphor: life's pillars compound " +
     "on one another, each one scaling the next. the same scores can shade more " +
     "or less of the full wheel depending on how they sit — this range runs from " +
-    "their worst arrangement to their best.";
+    "their worst arrangement to their best. ♥";
   function moveTip(e) {
     const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
     let x = e.clientX + pad, y = e.clientY + pad;
