@@ -146,6 +146,13 @@
   }
   .side-actions .pcbtn:hover::after { opacity: 1; }
 
+  /* nudge under the chart window: finish by copying + sharing */
+  .share-hint {
+    margin-top: 13px; text-align: center;
+    font-size: 14px; font-weight: bold;
+    color: rgba(67, 48, 31, .75);
+  }
+
   .statusbar {
     margin-top: 16px;
     padding: 6px 11px;
@@ -223,7 +230,7 @@
             <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
           </div>
           <div class="side-actions">
-            <button class="pcbtn" id="copy" data-label="copy image" aria-label="Copy the wheel image to your clipboard">
+            <button class="pcbtn" id="copy" data-label="copy & share" aria-label="Copy the wheel image to your clipboard">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
             <button class="pcbtn" id="reset" data-label="reset" aria-label="Reset">
@@ -233,6 +240,7 @@
         </div>
         <textarea id="note" class="statusbar note" rows="2" maxlength="110" placeholder="note..." aria-label="Note"></textarea>
         <div class="statusbar stamp" id="stamp"></div>
+        <div class="share-hint">all done? copy your wheel and share it with someone <span class="heart">♥</span></div>
       </div>
     </div>
 
