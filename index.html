@@ -335,11 +335,18 @@
     svg.appendChild(el("polygon", { points: poly, fill: rgba(series, t.fillAlpha), stroke: series,
       "stroke-width": 3, "stroke-linejoin": "round" }));
 
-    // vertices
+    // vertices + score number just outside each point
     state.pillars.forEach((p, i) => {
+      const a = angle(i);
       const [x, y] = pt(i, p.value);
       svg.appendChild(el("circle", { cx: x, cy: y, r: 6.5, fill: t.surface,
         stroke: series, "stroke-width": 3 }));
+      const lx = x + 24 * Math.cos(a), ly = y + 24 * Math.sin(a);
+      const num = el("text", { x: lx, y: ly + 7, "text-anchor": "middle",
+        fill: t.ink, "font-size": 19, "font-weight": "bold", "font-family": FONT,
+        stroke: "#ffffff", "stroke-width": 5, "paint-order": "stroke" });
+      num.textContent = p.value;
+      svg.appendChild(num);
     });
 
     // pillar labels (name wrapped onto lines + bold value) — ink tokens, never series color
@@ -373,9 +380,6 @@
         ts.textContent = ln;
         g.appendChild(ts);
       });
-      const val = el("tspan", { "font-weight": "bold", dx: 9 });
-      val.textContent = p.value;
-      g.appendChild(val);
       svg.appendChild(g);
     });
 
