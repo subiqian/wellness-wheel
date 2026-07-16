@@ -131,9 +131,6 @@
     display: inline-flex; align-items: center; justify-content: center;
   }
   .actions svg { width: 17px; height: 17px; display: block; }
-  /* the save button: big, colorful, bottom right */
-  #save { margin-left: auto; width: 62px; height: 48px; color: #fff; box-shadow: 3px 4px 0 rgba(67, 48, 31, .55); }
-  #save svg { width: 24px; height: 24px; }
 
   .statusbar {
     margin-top: 16px;
@@ -203,9 +200,6 @@
           </button>
           <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          </button>
-          <button class="pcbtn" id="save" title="Save — screenshot + CSV record" aria-label="Save screenshot and CSV record">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           </button>
         </div>
       </div>
@@ -600,7 +594,6 @@
       });
       box.appendChild(b);
     }
-    document.getElementById("save").style.background = state.color; // save button wears it too
   }
 
   // ---------- actions ----------
@@ -701,104 +694,6 @@
   document.getElementById("download").addEventListener("click", () => {
     windowPNG(stampText(), png => downloadBlob(png, slug() + ".png"));
   });
-
-  // ---------- save: screenshot + CSV record committed to GitHub over the web ----------
-  // Files land in the PRIVATE repo below (this site's repo is public, wellness
-  // data shouldn't be). Needs a fine-grained personal access token, asked for
-  // once and kept in this browser's localStorage.
-  const GH_REPO = "subiqian/wellness-saves";
-  const TOKEN_KEY = "ww-gh-token";
-  const LOG_KEY = "wellness-wheel-log";
-
-  function ghToken() {
-    let t = null;
-    try { t = localStorage.getItem(TOKEN_KEY); } catch (e) {}
-    if (!t) {
-      t = prompt("To save to github.com/" + GH_REPO + ", paste a GitHub token.\n\n" +
-        "Make one at github.com → Settings → Developer settings → " +
-        "Fine-grained tokens: select only the wellness-saves repo, " +
-        "permission Contents = Read and write.\n\n(Stored only in this browser.)");
-      if (t) {
-        t = t.trim();
-        try { localStorage.setItem(TOKEN_KEY, t); } catch (e) {}
-      }
-    }
-    return t;
-  }
-  async function ghApi(path, opts) {
-    const t = ghToken();
-    if (!t) throw new Error("no token");
-    const r = await fetch("https://api.github.com/repos/" + GH_REPO + "/contents/" + path, {
-      method: (opts && opts.method) || "GET",
-      body: (opts && opts.body) || undefined,
-      headers: { Authorization: "Bearer " + t, Accept: "application/vnd.github+json" }
-    });
-    if (r.status === 401 || r.status === 403) {
-      try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} // bad token — ask again next save
-      throw new Error("auth");
-    }
-    return r;
-  }
-  const bytesToB64 = bytes => {
-    const arr = new Uint8Array(bytes);
-    let s = "";
-    for (let i = 0; i < arr.length; i += 0x8000) s += String.fromCharCode.apply(null, arr.subarray(i, i + 0x8000));
-    return btoa(s);
-  };
-  const b64ToText = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
-  async function ghPut(path, contentB64, message, sha) {
-    const body = { message, content: contentB64 };
-    if (sha) body.sha = sha;
-    const r = await ghApi(path, { method: "PUT", body: JSON.stringify(body) });
-    if (!r.ok) throw new Error("put " + r.status);
-  }
-
-  document.getElementById("save").addEventListener("click", () => {
-    const full = stampText(); // frozen once — screenshot and CSV share this exact stamp
-    const [datetime, loc] = full.split(" · ");
-    const overall = (state.pillars.reduce((s, p) => s + p.value, 0) / state.pillars.length).toFixed(1);
-    const byName = n => { const p = state.pillars.find(x => x.name === n); return p ? p.value : ""; };
-    const extras = state.pillars.slice(FIXED.length).map(p => p.name + "=" + p.value).join("; ");
-    const row = [datetime, loc || "", state.title, state.color, overall, ...FIXED.map(byName), extras];
-
-    let log = [];
-    try { log = JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch (e) {}
-    log.push(row);
-    try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch (e) {}
-
-    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const header = ["datetime", "location", "title", "color", "overall",
-      ...FIXED.map(n => n.toLowerCase().replace(/ /g, "_")), "extra_pillars"];
-    const csv = [header, ...log].map(r => r.map(esc).join(",")).join("\r\n");
-    const csvBlob = new Blob([csv], { type: "text/csv" });
-    const pngName = slug() + "-" + datetime.replace(/\//g, "-").replace(/:/g, "").replace(/ /g, "_") + ".png";
-
-    windowPNG(full, async png => {
-      try {
-        // the CSV in the repo is the source of truth: fetch, append, commit
-        const esc2 = v => '"' + String(v).replace(/"/g, '""') + '"';
-        let csvText = header.map(esc2).join(",") + "\r\n";
-        let sha;
-        const g = await ghApi("wellness-log.csv");
-        if (g.ok) {
-          const j = await g.json();
-          sha = j.sha;
-          csvText = b64ToText(j.content);
-          if (!/\r?\n$/.test(csvText)) csvText += "\r\n";
-        }
-        csvText += row.map(esc2).join(",") + "\r\n";
-        await ghPut("wellness-log.csv", bytesToB64(new TextEncoder().encode(csvText)), "log: " + datetime, sha);
-        await ghPut("shots/" + pngName, bytesToB64(await png.arrayBuffer()), "shot: " + datetime);
-        toast("Your wellness state has been saved! ♥");
-      } catch (e) {
-        // no token / auth / offline — hand over the files instead
-        downloadBlob(png, pngName);
-        downloadBlob(csvBlob, "wellness-log.csv");
-        toast("Your wellness state has been saved! ♥ (downloaded)");
-      }
-    });
-  });
-
   document.getElementById("reset").addEventListener("click", () => {
     state = defaults();
     titleInput.value = "";
