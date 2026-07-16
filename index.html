@@ -600,6 +600,8 @@
       });
       box.appendChild(b);
     }
+    // the chart window's title bar wears the selected color too
+    document.querySelector(".titlebar.pink").style.background = state.color;
   }
 
   // ---------- actions ----------
@@ -629,7 +631,7 @@
     const W = SVG_W + (PAD + PNL) * 2;
     const sbY = TB + PAD + panelH + GAP;
     const H = sbY + SBH + PAD;
-    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", PINK = "#ef9aa9", HEART = "#d94f2b";
+    const BROWN = "#43301f", CREAM = "#f6efdd", CREAM2 = "#fffbf0", HEART = "#d94f2b";
 
     const clone = svg.cloneNode(true);
     clone.setAttribute("width", SVG_W); clone.setAttribute("height", SVG_H);
@@ -665,7 +667,7 @@
       ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
       ctx.fillStyle = CREAM; ctx.fill();
       ctx.save(); ctx.clip();
-      ctx.fillStyle = PINK; ctx.fillRect(0, 0, W, TB);
+      ctx.fillStyle = state.color; ctx.fillRect(0, 0, W, TB);
       ctx.fillStyle = BROWN; ctx.fillRect(0, TB - 2, W, 2);
       ctx.restore();
       ctx.lineWidth = 3; ctx.strokeStyle = BROWN;
