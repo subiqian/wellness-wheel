@@ -490,6 +490,9 @@
     }
   }
   svg.addEventListener("pointerdown", evt => {
+    // only start a drag inside the wheel — clicks out in the margins do nothing
+    const q = svgPoint(evt);
+    if (Math.hypot(q.x - CX, q.y - CY) > R + 26) return;
     dragging = nearestSpoke(evt);
     svg.setPointerCapture(evt.pointerId);
     dragValue(evt);
