@@ -8,63 +8,56 @@
 <style>
   :root {
     color-scheme: light;
-    /* girly retro palette */
-    --desktop: #f2c7d8;
-    --win: #ffe9f2;          /* window body */
-    --bevel-light: #fff7fa;  /* raised edge highlight */
-    --bevel-mid: #dc9cba;    /* raised edge shade */
-    --bevel-dark: #99506f;   /* deepest edge */
-    --btn: #ffd6e7;
-    --text: #4a2438;
-    --title-1: #d6549a;
-    --title-2: #f79cc7;
+    /* retro vaporwave UI-kit palette */
+    --brown: #43301f;      /* outlines & ink */
+    --cream: #f6efdd;      /* window bodies */
+    --cream-2: #fffbf0;    /* fields */
+    --pink: #ef9aa9;       /* chart window title bar */
+    --yellow: #f4c95d;     /* settings title bar */
+    --star: #f2c14e;
+    --heart: #d94f2b;
   }
   * { box-sizing: border-box; margin: 0; }
 
   body {
-    background-color: var(--desktop); /* the desktop: pink with polka dots */
-    background-image: radial-gradient(rgba(255,255,255,.55) 2px, transparent 2.5px);
-    background-size: 26px 26px;
-    color: var(--text);
-    font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
+    /* the desktop: smooth lavender → pink, crisp elements on top */
+    background: linear-gradient(115deg, #b7b0e8, #eeb4ce 60%, #f2bccb);
+    background-attachment: fixed;
+    color: var(--brown);
+    font-family: "Courier New", Courier, monospace;
     font-size: 13px;
     min-height: 100vh;
-    padding: 28px 16px 48px;
+    padding: 30px 18px 50px;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; }
   @media (max-width: 840px) { .layout { grid-template-columns: 1fr; } }
 
-  /* window chrome */
+  /* window chrome: flat cream, brown outline, solid offset shadow */
   .window {
-    background: var(--win);
-    padding: 3px;
-    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px var(--bevel-light),
-                inset -2px -2px var(--bevel-mid), inset 2px 2px #fff,
-                3px 3px 0 rgba(153, 80, 111, .25);
+    background: var(--cream);
+    border: 2px solid var(--brown);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 6px 7px 0 rgba(67, 48, 31, .3);
   }
   .titlebar {
-    display: flex; align-items: center; gap: 6px;
-    background: linear-gradient(90deg, var(--title-1), var(--title-2));
-    color: #fff; font-weight: bold; font-size: 13px;
-    padding: 4px 4px 4px 9px;
+    display: flex; align-items: center; gap: 7px;
+    color: var(--brown); font-weight: bold; font-size: 13px;
+    padding: 5px 10px;
+    border-bottom: 2px solid var(--brown);
     user-select: none;
   }
-  .titlebar .t-btns { margin-left: auto; display: flex; gap: 2px; flex: none; }
-  .t-btn {
-    width: 18px; height: 16px;
-    background: var(--btn); color: var(--bevel-dark);
-    font-size: 10px; line-height: 15px; text-align: center;
-    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
-                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
-  }
-  .win-body { padding: 12px; }
+  .titlebar.pink { background: var(--pink); }
+  .titlebar.yellow { background: var(--yellow); }
+  .t-btns { margin-left: auto; flex: none; letter-spacing: 5px; font-weight: bold; }
+  .win-body { padding: 14px; }
 
-  /* the diagram sits on white, sunken like a classic canvas */
+  /* the diagram sits on white behind a brown outline */
   .canvas-panel {
     background: #fff;
-    box-shadow: inset 1px 1px var(--bevel-mid), inset 2px 2px var(--bevel-dark),
-                inset -1px -1px #fff;
+    border: 2px solid var(--brown);
+    border-radius: 5px;
     padding: 10px;
   }
   #chart { display: block; width: 100%; height: auto; }
@@ -72,85 +65,91 @@
   /* editable title inside the chart window's title bar */
   #title-input {
     flex: 1; min-width: 0;
-    font: bold 13px Tahoma, "MS Sans Serif", sans-serif;
-    color: #fff; background: transparent;
+    font: bold 13px "Courier New", Courier, monospace;
+    color: var(--brown); background: transparent;
     border: none; outline: none;
     padding: 0;
   }
-  #title-input::placeholder { color: rgba(255,255,255,.8); }
+  #title-input::placeholder { color: rgba(67,48,31,.55); }
 
-  .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .stat { display: flex; align-items: baseline; gap: 7px; }
-  .stat .value { font-size: 28px; font-weight: bold; }
+  .stat .value { font-size: 27px; font-weight: bold; }
   .stat .label { font-size: 11px; }
   .color-pick { display: flex; align-items: center; gap: 7px; font-size: 12px; }
   input[type="color"] {
-    width: 30px; height: 24px; padding: 0; cursor: pointer;
-    border: none; background: var(--btn);
-    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
-                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
+    width: 34px; height: 26px; padding: 1px; cursor: pointer;
+    background: var(--cream-2);
+    border: 2px solid var(--brown); border-radius: 5px;
     -webkit-appearance: none; appearance: none;
   }
-  input[type="color"]::-webkit-color-swatch-wrapper { padding: 4px; }
-  input[type="color"]::-webkit-color-swatch { border: 1px solid var(--bevel-dark); }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
 
-  /* sunken white fields */
-  .field {
-    background: #fff; color: var(--text);
-    border: none; outline: none;
-    font: 13px Tahoma, "MS Sans Serif", sans-serif;
-    padding: 4px 6px;
-    box-shadow: inset -1px -1px #fff, inset 1px 1px var(--bevel-mid),
-                inset -2px -2px var(--win), inset 2px 2px var(--bevel-dark);
-  }
-
-  .pillars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-  .pillars li { display: flex; align-items: center; gap: 6px; }
+  .pillars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .pillars li { display: flex; align-items: center; gap: 7px; }
   .pillars .name { flex: 1; min-width: 0; }
-  .pillars span.name { padding: 4px 2px; font-weight: bold; }
-  .pillars .score { width: 52px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .pillars span.name { font-weight: bold; padding: 3px 0; }
+  .pillars input.name {
+    font: 13px "Courier New", Courier, monospace;
+    color: var(--brown);
+    background: var(--cream-2);
+    border: 2px solid var(--brown); border-radius: 5px;
+    padding: 3px 6px; outline: none;
+  }
+  .pillars input.name:focus { background: #fff; }
 
-  /* raised pink buttons, pressed-in on click */
+  /* star ratings — click the nth star; click it again to clear to 0 */
+  .stars { display: flex; flex: none; }
+  .star {
+    background: none; border: none; cursor: pointer;
+    font-size: 19px; line-height: 1; padding: 0 1px;
+    color: var(--brown);
+  }
+  .star.filled {
+    color: var(--star);
+    -webkit-text-stroke: 1.2px var(--brown);
+  }
+
+  /* raised cream buttons with solid offset shadow, pressed-in on click */
   .pcbtn {
-    background: var(--btn); color: var(--text);
-    border: none; cursor: pointer;
-    font: 12px Tahoma, "MS Sans Serif", sans-serif;
-    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
-                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
+    background: var(--cream-2); color: var(--brown);
+    border: 2px solid var(--brown); border-radius: 5px;
+    cursor: pointer;
+    font: bold 12px "Courier New", Courier, monospace;
+    box-shadow: 2px 3px 0 rgba(67, 48, 31, .55);
   }
-  .pcbtn:active {
-    box-shadow: inset -1px -1px #fff, inset 1px 1px var(--bevel-dark),
-                inset -2px -2px var(--bevel-light), inset 2px 2px var(--bevel-mid);
-  }
-  .pcbtn:active > * { transform: translate(1px, 1px); }
-  .pcbtn:disabled { color: var(--bevel-mid); text-shadow: 1px 1px #fff; cursor: default; }
+  .pcbtn:active { transform: translate(2px, 3px); box-shadow: none; }
+  .pcbtn:disabled { opacity: .45; cursor: default; box-shadow: none; }
 
-  .rm { width: 22px; height: 22px; flex: none; font-size: 12px; line-height: 1; }
-  .spacer { width: 22px; flex: none; }
+  .rm { width: 24px; height: 24px; flex: none; font-size: 12px; line-height: 1; padding: 0; }
+  .spacer { width: 24px; flex: none; }
 
-  #add-pillar { margin-top: 12px; padding: 5px 12px; }
+  #add-pillar { margin-top: 14px; padding: 6px 12px; }
 
-  .actions { display: flex; gap: 6px; margin-top: 14px; }
+  .actions { display: flex; gap: 9px; margin-top: 16px; }
   .actions .pcbtn {
-    width: 40px; height: 34px;
+    width: 42px; height: 36px;
     display: inline-flex; align-items: center; justify-content: center;
   }
   .actions svg { width: 17px; height: 17px; display: block; }
 
   .statusbar {
-    margin-top: 12px;
-    padding: 3px 8px;
+    margin-top: 16px;
+    padding: 4px 9px;
     font-size: 11px;
-    box-shadow: inset 1px 1px var(--bevel-mid), inset -1px -1px #fff;
+    background: var(--cream-2);
+    border: 2px solid var(--brown); border-radius: 5px;
   }
+  .statusbar .heart { color: var(--heart); }
 
   #toast {
     position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
-    background: var(--btn); color: var(--text);
-    font: 12px Tahoma, "MS Sans Serif", sans-serif;
+    background: var(--cream); color: var(--brown);
+    font: bold 12px "Courier New", Courier, monospace;
     padding: 8px 14px;
-    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px var(--bevel-light),
-                inset -2px -2px var(--bevel-mid), inset 2px 2px #fff;
+    border: 2px solid var(--brown); border-radius: 5px;
+    box-shadow: 3px 4px 0 rgba(67, 48, 31, .4);
     opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20;
   }
   #toast.show { opacity: 1; }
@@ -161,22 +160,22 @@
   <div class="layout">
 
     <div class="window">
-      <div class="titlebar">
-        <span aria-hidden="true">♡</span>
+      <div class="titlebar pink">
+        <span class="heart" style="color:#d94f2b" aria-hidden="true">♥</span>
         <input id="title-input" placeholder="my wellness wheel" aria-label="Chart title" maxlength="60">
-        <div class="t-btns" aria-hidden="true"><span class="t-btn">–</span><span class="t-btn">□</span><span class="t-btn">×</span></div>
+        <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
         <div class="canvas-panel">
-          <svg id="chart" viewBox="0 0 800 640" role="img" aria-label="Wellness spider chart"></svg>
+          <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
         </div>
       </div>
     </div>
 
     <div class="window">
-      <div class="titlebar">
+      <div class="titlebar yellow">
         <span>wellness.exe</span>
-        <div class="t-btns" aria-hidden="true"><span class="t-btn">–</span><span class="t-btn">□</span><span class="t-btn">×</span></div>
+        <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
         <div class="topline">
@@ -184,27 +183,27 @@
             <span class="value" id="avg">–</span>
             <span class="label">overall / 5</span>
           </div>
-          <label class="color-pick">Color
+          <label class="color-pick">color
             <input type="color" id="color-input" aria-label="Chart color">
           </label>
         </div>
         <ul class="pillars" id="pillar-list"></ul>
-        <button class="pcbtn" id="add-pillar">+ add pillar ♡</button>
+        <button class="pcbtn" id="add-pillar">+ add pillar</button>
         <div class="actions">
           <button class="pcbtn" id="copy-link" title="Copy share link" aria-label="Copy share link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           </button>
           <button class="pcbtn" id="share" hidden title="Share" aria-label="Share">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           </button>
           <button class="pcbtn" id="download" title="Download PNG" aria-label="Download PNG">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
           <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
           </button>
         </div>
-        <div class="statusbar">˖ ᡣ𐭩 0 = struggling · 5 = thriving ᡣ𐭩 ˖</div>
+        <div class="statusbar"><span class="heart">♥</span> 0 = struggling · 5 = thriving <span class="heart">♥</span></div>
       </div>
     </div>
 
@@ -218,16 +217,16 @@
   "use strict";
 
   // ---------- theme: always light — explicit values so SVG serializes correctly for PNG export ----------
-  const THEME = { surface:"#ffffff", ink:"#33202b", ink2:"#6d4a5c", muted:"#b78ca3",
-                  grid:"#f0dbe5", fillAlpha:0.18 };
-  const FONT = "Tahoma, 'MS Sans Serif', sans-serif";
+  const THEME = { surface:"#ffffff", ink:"#43301f", ink2:"#6b5138", muted:"#a8906e",
+                  grid:"#e9dfc9", fillAlpha:0.18 };
+  const FONT = "'Courier New', Courier, monospace";
   const rgba = (hex, a) => {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
   };
 
   // ---------- state ----------
-  const DEFAULT_COLOR = "#e87ba4";
+  const DEFAULT_COLOR = "#ef9aa9";
   const STORE_KEY = "wellness-wheel-v2";
   const FIXED = ["Mental Health", "Physical Health", "Sociability"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
@@ -295,7 +294,7 @@
   // ---------- chart ----------
   const svg = document.getElementById("chart");
   const NS = "http://www.w3.org/2000/svg";
-  const CX = 400, CY = 320, R = 200, LABEL_R = R + 40;
+  const CX = 420, CY = 320, R = 200, LABEL_R = R + 40;
 
   const angle = i => -Math.PI / 2 + (i * 2 * Math.PI) / state.pillars.length;
   const pt = (i, v) => {
@@ -317,15 +316,15 @@
     // grid rings (spider polygons) at 1..5 + spokes — recessive hairlines
     for (let v = 1; v <= MAX_VAL; v++) {
       const pts = state.pillars.map((_, i) => pt(i, v).join(",")).join(" ");
-      svg.appendChild(el("polygon", { points: pts, fill: "none", stroke: t.grid, "stroke-width": 1 }));
+      svg.appendChild(el("polygon", { points: pts, fill: "none", stroke: t.grid, "stroke-width": 1.2 }));
     }
     for (let i = 0; i < N; i++) {
       const [x, y] = pt(i, MAX_VAL);
-      svg.appendChild(el("line", { x1: CX, y1: CY, x2: x, y2: y, stroke: t.grid, "stroke-width": 1 }));
+      svg.appendChild(el("line", { x1: CX, y1: CY, x2: x, y2: y, stroke: t.grid, "stroke-width": 1.2 }));
     }
     // ring value labels along the top spoke
     for (let v = 1; v <= MAX_VAL; v++) {
-      const lbl = el("text", { x: CX + 8, y: CY - (v / MAX_VAL) * R + 4, fill: t.muted,
+      const lbl = el("text", { x: CX + 9, y: CY - (v / MAX_VAL) * R + 4, fill: t.muted,
         "font-size": 12, "font-family": FONT });
       lbl.textContent = v;
       svg.appendChild(lbl);
@@ -334,13 +333,13 @@
     // data polygon
     const poly = state.pillars.map((p, i) => pt(i, p.value).join(",")).join(" ");
     svg.appendChild(el("polygon", { points: poly, fill: rgba(series, t.fillAlpha), stroke: series,
-      "stroke-width": 2, "stroke-linejoin": "round" }));
+      "stroke-width": 3, "stroke-linejoin": "round" }));
 
     // vertices
     state.pillars.forEach((p, i) => {
       const [x, y] = pt(i, p.value);
       svg.appendChild(el("circle", { cx: x, cy: y, r: 6.5, fill: t.surface,
-        stroke: series, "stroke-width": 2.5 }));
+        stroke: series, "stroke-width": 3 }));
     });
 
     // pillar labels (name + value) — ink tokens, never series color
@@ -351,7 +350,7 @@
       const anchor = Math.abs(cos) < 0.3 ? "middle" : cos > 0 ? "start" : "end";
       const dy = sin > 0.85 ? 18 : sin < -0.85 ? -10 : 6;
       const g = el("text", { x, y: y + dy, "text-anchor": anchor, fill: t.ink2,
-        "font-size": 18, "font-family": FONT });
+        "font-size": 17, "font-family": FONT });
       const name = document.createElementNS(NS, "tspan");
       name.textContent = p.name;
       const val = el("tspan", { fill: t.ink, "font-weight": "bold", dx: 8 });
@@ -379,10 +378,10 @@
         nameEl.textContent = p.name;
       } else {
         nameEl = document.createElement("input");
-        nameEl.className = "name field";
+        nameEl.className = "name";
         nameEl.value = p.name;
         nameEl.maxLength = 24;
-        nameEl.placeholder = "Pillar name";
+        nameEl.placeholder = "pillar name";
         nameEl.setAttribute("aria-label", "Pillar " + (i + 1) + " name");
         nameEl.addEventListener("input", () => {
           p.name = nameEl.value || "Pillar";
@@ -390,22 +389,26 @@
         });
       }
 
-      const score = document.createElement("input");
-      score.className = "score field";
-      score.type = "number";
-      score.min = 0; score.max = MAX_VAL; score.step = 1;
-      score.inputMode = "numeric";
-      score.value = p.value;
-      score.setAttribute("aria-label", p.name + " score");
-      score.addEventListener("input", () => {
-        const v = Number(score.value);
-        if (!Number.isFinite(v)) return;
-        p.value = Math.round(Math.min(MAX_VAL, Math.max(0, v)));
-        renderChart(); persist();
-      });
-      score.addEventListener("blur", () => { score.value = p.value; });
+      // star rating: click the nth star to set; click the current one to clear
+      const stars = document.createElement("div");
+      stars.className = "stars";
+      stars.setAttribute("role", "radiogroup");
+      stars.setAttribute("aria-label", p.name + " score");
+      for (let n = 1; n <= MAX_VAL; n++) {
+        const star = document.createElement("button");
+        star.className = "star" + (n <= p.value ? " filled" : "");
+        star.textContent = n <= p.value ? "★" : "☆";
+        star.setAttribute("aria-label", p.name + ": " + n + " of " + MAX_VAL);
+        star.setAttribute("role", "radio");
+        star.setAttribute("aria-checked", String(n === p.value));
+        star.addEventListener("click", () => {
+          p.value = (p.value === n) ? 0 : n;
+          renderList(); persist();
+        });
+        stars.appendChild(star);
+      }
 
-      li.append(nameEl, score);
+      li.append(nameEl, stars);
       if (isFixed) {
         const spacer = document.createElement("span");
         spacer.className = "spacer";
@@ -462,7 +465,7 @@
     persist();
     try {
       await navigator.clipboard.writeText(location.href);
-      toast("link copied ♡");
+      toast("link copied ♥");
     } catch (e) {
       prompt("Copy this link:", location.href);
     }
@@ -479,7 +482,7 @@
 
   document.getElementById("download").addEventListener("click", () => {
     const t = THEME;
-    const SCALE = 2, W = 800, H = 640, HEAD = state.title ? 88 : 32;
+    const SCALE = 2, W = 840, H = 640, HEAD = state.title ? 88 : 32;
     const clone = svg.cloneNode(true);
     clone.setAttribute("width", W); clone.setAttribute("height", H);
     clone.setAttribute("xmlns", NS);
@@ -496,7 +499,7 @@
       ctx.fillRect(0, 0, W, H + HEAD);
       if (state.title) {
         ctx.fillStyle = t.ink;
-        ctx.font = "bold 26px Tahoma, sans-serif";
+        ctx.font = "bold 26px 'Courier New', monospace";
         ctx.textAlign = "center";
         ctx.fillText(state.title, W / 2, 52);
       }
@@ -518,7 +521,7 @@
     titleInput.value = "";
     colorInput.value = state.color;
     renderList(); persist();
-    toast("reset ♡");
+    toast("reset ♥");
   });
 
   // ---------- go ----------
