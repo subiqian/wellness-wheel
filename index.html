@@ -234,7 +234,7 @@
   const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
   const FIXED = ["Mental", "Physical", "Productivity", "Sociability"];
-  const MAX_PILLARS = 7, MAX_VAL = 5;
+  const MAX_PILLARS = 6, MAX_VAL = 5; // 4 fixed + 2 added — keeps areaBounds' brute force tiny
 
   function defaults() {
     return {
@@ -407,7 +407,7 @@
   // min & max polygon area over all axis orderings, as a fraction of the
   // full (all-5s) polygon. Area ∝ Σ adjacent-value products — the ½sin(2π/N)
   // factor cancels in the ratio — so brute-force the cyclic orderings with
-  // the first value pinned (rotations don't change the sum; ≤6! = 720 perms)
+  // the first value pinned (rotations don't change the sum; ≤5! = 120 perms)
   function areaBounds(vals) {
     let min = Infinity, max = -Infinity;
     const perm = (rest, ring) => {
