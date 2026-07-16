@@ -6,51 +6,65 @@
 <title>Wellness Wheel</title>
 <meta name="description" content="Map your wellness across life's pillars — score, color, and share your wheel.">
 <style>
-  :root { color-scheme: light; }
+  :root {
+    color-scheme: light;
+    /* girly retro palette */
+    --desktop: #f2c7d8;
+    --win: #ffe9f2;          /* window body */
+    --bevel-light: #fff7fa;  /* raised edge highlight */
+    --bevel-mid: #dc9cba;    /* raised edge shade */
+    --bevel-dark: #99506f;   /* deepest edge */
+    --btn: #ffd6e7;
+    --text: #4a2438;
+    --title-1: #d6549a;
+    --title-2: #f79cc7;
+  }
   * { box-sizing: border-box; margin: 0; }
 
-  /* ---- cute old PC ---- */
   body {
-    background: #008080; /* the desktop */
-    color: #000;
+    background-color: var(--desktop); /* the desktop: pink with polka dots */
+    background-image: radial-gradient(rgba(255,255,255,.55) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--text);
     font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
     font-size: 13px;
     min-height: 100vh;
     padding: 28px 16px 48px;
   }
   .wrap { max-width: 1040px; margin: 0 auto; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
   @media (max-width: 840px) { .layout { grid-template-columns: 1fr; } }
 
   /* window chrome */
   .window {
-    background: #c0c0c0;
+    background: var(--win);
     padding: 3px;
-    box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf,
-                inset -2px -2px #808080, inset 2px 2px #fff;
+    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px var(--bevel-light),
+                inset -2px -2px var(--bevel-mid), inset 2px 2px #fff,
+                3px 3px 0 rgba(153, 80, 111, .25);
   }
   .titlebar {
     display: flex; align-items: center; gap: 6px;
-    background: linear-gradient(90deg, #000080, #1084d0);
+    background: linear-gradient(90deg, var(--title-1), var(--title-2));
     color: #fff; font-weight: bold; font-size: 13px;
-    padding: 3px 4px 3px 8px;
+    padding: 4px 4px 4px 9px;
     user-select: none;
   }
   .titlebar .t-btns { margin-left: auto; display: flex; gap: 2px; flex: none; }
   .t-btn {
     width: 18px; height: 16px;
-    background: #c0c0c0; color: #000;
-    font-size: 10px; line-height: 14px; text-align: center;
-    box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff,
-                inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+    background: var(--btn); color: var(--bevel-dark);
+    font-size: 10px; line-height: 15px; text-align: center;
+    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
+                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
   }
   .win-body { padding: 12px; }
 
   /* the diagram sits on white, sunken like a classic canvas */
   .canvas-panel {
     background: #fff;
-    box-shadow: inset 1px 1px #808080, inset 2px 2px #0a0a0a,
-                inset -1px -1px #dfdfdf;
+    box-shadow: inset 1px 1px var(--bevel-mid), inset 2px 2px var(--bevel-dark),
+                inset -1px -1px #fff;
     padding: 10px;
   }
   #chart { display: block; width: 100%; height: auto; }
@@ -63,7 +77,7 @@
     border: none; outline: none;
     padding: 0;
   }
-  #title-input::placeholder { color: rgba(255,255,255,.75); }
+  #title-input::placeholder { color: rgba(255,255,255,.8); }
 
   .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .stat { display: flex; align-items: baseline; gap: 7px; }
@@ -72,50 +86,49 @@
   .color-pick { display: flex; align-items: center; gap: 7px; font-size: 12px; }
   input[type="color"] {
     width: 30px; height: 24px; padding: 0; cursor: pointer;
-    border: none; background: #c0c0c0;
-    box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff,
-                inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+    border: none; background: var(--btn);
+    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
+                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
     -webkit-appearance: none; appearance: none;
   }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 4px; }
-  input[type="color"]::-webkit-color-swatch { border: 1px solid #0a0a0a; }
+  input[type="color"]::-webkit-color-swatch { border: 1px solid var(--bevel-dark); }
 
   /* sunken white fields */
   .field {
-    background: #fff; color: #000;
+    background: #fff; color: var(--text);
     border: none; outline: none;
     font: 13px Tahoma, "MS Sans Serif", sans-serif;
     padding: 4px 6px;
-    box-shadow: inset -1px -1px #fff, inset 1px 1px #808080,
-                inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px var(--bevel-mid),
+                inset -2px -2px var(--win), inset 2px 2px var(--bevel-dark);
   }
 
   .pillars { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 5px; }
   .pillars li { display: flex; align-items: center; gap: 6px; }
   .pillars .name { flex: 1; min-width: 0; }
   .pillars span.name { padding: 4px 2px; font-weight: bold; }
-  .pillars .score { width: 56px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .pillars .score { width: 52px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
 
-  /* raised gray buttons, pressed-in on click */
+  /* raised pink buttons, pressed-in on click */
   .pcbtn {
-    background: #c0c0c0; color: #000;
+    background: var(--btn); color: var(--text);
     border: none; cursor: pointer;
     font: 12px Tahoma, "MS Sans Serif", sans-serif;
-    box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff,
-                inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px #fff,
+                inset -2px -2px var(--bevel-mid), inset 2px 2px var(--bevel-light);
   }
   .pcbtn:active {
-    box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a,
-                inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px var(--bevel-dark),
+                inset -2px -2px var(--bevel-light), inset 2px 2px var(--bevel-mid);
   }
   .pcbtn:active > * { transform: translate(1px, 1px); }
-  .pcbtn:disabled { color: #808080; text-shadow: 1px 1px #fff; cursor: default; }
+  .pcbtn:disabled { color: var(--bevel-mid); text-shadow: 1px 1px #fff; cursor: default; }
 
   .rm { width: 22px; height: 22px; flex: none; font-size: 12px; line-height: 1; }
   .spacer { width: 22px; flex: none; }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
-  .chip { padding: 4px 9px; }
+  #add-pillar { margin-top: 12px; padding: 5px 12px; }
 
   .actions { display: flex; gap: 6px; margin-top: 14px; }
   .actions .pcbtn {
@@ -123,22 +136,21 @@
     display: inline-flex; align-items: center; justify-content: center;
   }
   .actions svg { width: 17px; height: 17px; display: block; }
-  #reset { color: #a00000; }
 
   .statusbar {
     margin-top: 12px;
     padding: 3px 8px;
     font-size: 11px;
-    box-shadow: inset 1px 1px #808080, inset -1px -1px #fff;
+    box-shadow: inset 1px 1px var(--bevel-mid), inset -1px -1px #fff;
   }
 
   #toast {
     position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
-    background: #c0c0c0; color: #000;
+    background: var(--btn); color: var(--text);
     font: 12px Tahoma, "MS Sans Serif", sans-serif;
     padding: 8px 14px;
-    box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf,
-                inset -2px -2px #808080, inset 2px 2px #fff;
+    box-shadow: inset -1px -1px var(--bevel-dark), inset 1px 1px var(--bevel-light),
+                inset -2px -2px var(--bevel-mid), inset 2px 2px #fff;
     opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20;
   }
   #toast.show { opacity: 1; }
@@ -150,7 +162,8 @@
 
     <div class="window">
       <div class="titlebar">
-        <input id="title-input" placeholder="My Wellness Wheel" aria-label="Chart title" maxlength="60">
+        <span aria-hidden="true">♡</span>
+        <input id="title-input" placeholder="my wellness wheel" aria-label="Chart title" maxlength="60">
         <div class="t-btns" aria-hidden="true"><span class="t-btn">–</span><span class="t-btn">□</span><span class="t-btn">×</span></div>
       </div>
       <div class="win-body">
@@ -176,7 +189,7 @@
           </label>
         </div>
         <ul class="pillars" id="pillar-list"></ul>
-        <div class="chips" id="chips" aria-label="Add a pillar"></div>
+        <button class="pcbtn" id="add-pillar">+ add pillar ♡</button>
         <div class="actions">
           <button class="pcbtn" id="copy-link" title="Copy share link" aria-label="Copy share link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -191,7 +204,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
           </button>
         </div>
-        <div class="statusbar">0 = struggling · 5 = thriving · saves automatically</div>
+        <div class="statusbar">˖ ᡣ𐭩 0 = struggling · 5 = thriving ᡣ𐭩 ˖</div>
       </div>
     </div>
 
@@ -205,8 +218,8 @@
   "use strict";
 
   // ---------- theme: always light — explicit values so SVG serializes correctly for PNG export ----------
-  const THEME = { surface:"#ffffff", ink:"#000000", ink2:"#3b3b3b", muted:"#7a7a7a",
-                  grid:"#d9d9d9", fillAlpha:0.16 };
+  const THEME = { surface:"#ffffff", ink:"#33202b", ink2:"#6d4a5c", muted:"#b78ca3",
+                  grid:"#f0dbe5", fillAlpha:0.18 };
   const FONT = "Tahoma, 'MS Sans Serif', sans-serif";
   const rgba = (hex, a) => {
     const n = parseInt(hex.slice(1), 16);
@@ -214,31 +227,30 @@
   };
 
   // ---------- state ----------
-  const DEFAULT_COLOR = "#2a78d6";
+  const DEFAULT_COLOR = "#e87ba4";
   const STORE_KEY = "wellness-wheel-v2";
   const FIXED = ["Mental Health", "Physical Health", "Sociability"];
-  const COMMON = ["Work", "Sleep", "Nutrition", "Exercise", "Calm", "Fun", "Finances", "Spirituality"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
   function defaults() {
     return {
       title: "",
       color: DEFAULT_COLOR,
-      pillars: FIXED.map(name => ({ name, value: 2.5 }))
+      pillars: FIXED.map(name => ({ name, value: 3 }))
     };
   }
   // The three fixed pillars always occupy slots 0-2 (matched by name if the
   // incoming data has them); everything else becomes an extra, capped at 7 total.
   function sanitize(s) {
     const color = /^#[0-9a-fA-F]{6}$/.test(s.color || "") ? s.color : DEFAULT_COLOR;
-    const clampV = v => Math.min(MAX_VAL, Math.max(0, Number(v) || 0));
+    const clampV = v => Math.round(Math.min(MAX_VAL, Math.max(0, Number(v) || 0)));
     const incoming = (Array.isArray(s.pillars) ? s.pillars : []).map(p => ({
       name: String(p.name || "Pillar").slice(0, 24),
       value: clampV(p.value)
     }));
     const pillars = FIXED.map(name => {
       const i = incoming.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
-      return { name, value: i >= 0 ? incoming.splice(i, 1)[0].value : 2.5 };
+      return { name, value: i >= 0 ? incoming.splice(i, 1)[0].value : 3 };
     });
     return {
       title: String(s.title || "").slice(0, 60),
@@ -295,7 +307,6 @@
     for (const k in attrs) n.setAttribute(k, attrs[k]);
     return n;
   };
-  const fmt = v => v % 1 ? v.toFixed(1) : String(v);
 
   function renderChart() {
     const t = THEME;
@@ -344,7 +355,7 @@
       const name = document.createElementNS(NS, "tspan");
       name.textContent = p.name;
       const val = el("tspan", { fill: t.ink, "font-weight": "bold", dx: 8 });
-      val.textContent = fmt(p.value);
+      val.textContent = p.value;
       g.append(name, val);
       svg.appendChild(g);
     });
@@ -382,17 +393,17 @@
       const score = document.createElement("input");
       score.className = "score field";
       score.type = "number";
-      score.min = 0; score.max = MAX_VAL; score.step = 0.5;
-      score.inputMode = "decimal";
-      score.value = fmt(p.value);
+      score.min = 0; score.max = MAX_VAL; score.step = 1;
+      score.inputMode = "numeric";
+      score.value = p.value;
       score.setAttribute("aria-label", p.name + " score");
       score.addEventListener("input", () => {
         const v = Number(score.value);
         if (!Number.isFinite(v)) return;
-        p.value = Math.min(MAX_VAL, Math.max(0, v));
+        p.value = Math.round(Math.min(MAX_VAL, Math.max(0, v)));
         renderChart(); persist();
       });
-      score.addEventListener("blur", () => { score.value = fmt(p.value); });
+      score.addEventListener("blur", () => { score.value = p.value; });
 
       li.append(nameEl, score);
       if (isFixed) {
@@ -412,42 +423,18 @@
       }
       list.appendChild(li);
     });
-    renderChips();
+    document.getElementById("add-pillar").disabled = state.pillars.length >= MAX_PILLARS;
     renderChart();
   }
 
-  function renderChips() {
-    const box = document.getElementById("chips");
-    box.textContent = "";
-    const full = state.pillars.length >= MAX_PILLARS;
-    const have = new Set(state.pillars.map(p => p.name.toLowerCase()));
-    for (const name of COMMON) {
-      if (have.has(name.toLowerCase())) continue;
-      const b = document.createElement("button");
-      b.className = "pcbtn chip";
-      b.textContent = "+ " + name;
-      b.disabled = full;
-      b.addEventListener("click", () => addPillar(name, false));
-      box.appendChild(b);
-    }
-    const custom = document.createElement("button");
-    custom.className = "pcbtn chip";
-    custom.textContent = "+ Custom";
-    custom.disabled = full;
-    custom.addEventListener("click", () => addPillar("Pillar", true));
-    box.appendChild(custom);
-  }
-
-  function addPillar(name, focusName) {
+  document.getElementById("add-pillar").addEventListener("click", () => {
     if (state.pillars.length >= MAX_PILLARS) return;
-    state.pillars.push({ name, value: 2.5 });
+    state.pillars.push({ name: "Pillar", value: 3 });
     renderList(); persist();
-    if (focusName) {
-      const inputs = document.querySelectorAll("#pillar-list input.name");
-      const last = inputs[inputs.length - 1];
-      last.focus(); last.select();
-    }
-  }
+    const inputs = document.querySelectorAll("#pillar-list input.name");
+    const last = inputs[inputs.length - 1];
+    last.focus(); last.select();
+  });
 
   // ---------- title & color ----------
   const titleInput = document.getElementById("title-input");
@@ -475,7 +462,7 @@
     persist();
     try {
       await navigator.clipboard.writeText(location.href);
-      toast("Link copied — send it to anyone");
+      toast("link copied ♡");
     } catch (e) {
       prompt("Copy this link:", location.href);
     }
@@ -486,7 +473,7 @@
     shareBtn.hidden = false;
     shareBtn.addEventListener("click", () => {
       persist();
-      navigator.share({ title: state.title || "My Wellness Wheel", url: location.href }).catch(() => {});
+      navigator.share({ title: state.title || "my wellness wheel", url: location.href }).catch(() => {});
     });
   }
 
@@ -531,7 +518,7 @@
     titleInput.value = "";
     colorInput.value = state.color;
     renderList(); persist();
-    toast("Reset");
+    toast("reset ♡");
   });
 
   // ---------- go ----------
