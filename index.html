@@ -225,7 +225,7 @@
   const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
   const STORE_KEY = "wellness-wheel-v2";
-  const FIXED = ["Mental Health", "Productivity", "Sociability", "Physical Health"];
+  const FIXED = ["Mental Health", "Physical Health", "Productivity", "Sociability"];
   const MAX_PILLARS = 7, MAX_VAL = 5;
 
   function defaults() {
@@ -629,25 +629,28 @@
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      const M = 64; // desktop background margin around the window
+      const M = 56;            // desktop background margin around the window
+      const WS = 640 / W;      // render the window small — its real on-screen width
+      const outW = W * WS + M * 2, outH = H * WS + M * 2;
       const canvas = document.createElement("canvas");
-      canvas.width = (W + M * 2) * SCALE;
-      canvas.height = (H + M * 2) * SCALE;
+      canvas.width = outW * SCALE;
+      canvas.height = outH * SCALE;
       const ctx = canvas.getContext("2d");
       ctx.scale(SCALE, SCALE);
 
       // the lavender→pink desktop behind the window
-      const grad = ctx.createLinearGradient(0, 0, W + M * 2, (H + M * 2) * 0.9);
+      const grad = ctx.createLinearGradient(0, 0, outW, outH * 0.9);
       grad.addColorStop(0, "#b7b0e8");
       grad.addColorStop(0.6, "#eeb4ce");
       grad.addColorStop(1, "#f2bccb");
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W + M * 2, H + M * 2);
+      ctx.fillRect(0, 0, outW, outH);
 
       // the window's solid offset shadow, then the window itself
-      ctx.fillStyle = "rgba(67, 48, 31, .3)";
-      ctx.beginPath(); ctx.roundRect(M + 7, M + 8, W - 3, H - 3, 10); ctx.fill();
       ctx.translate(M, M);
+      ctx.scale(WS, WS);
+      ctx.fillStyle = "rgba(67, 48, 31, .3)";
+      ctx.beginPath(); ctx.roundRect(9, 10, W - 3, H - 3, 10); ctx.fill();
 
       // window body + clipped title bar
       ctx.beginPath(); ctx.roundRect(1.5, 1.5, W - 3, H - 3, 10);
