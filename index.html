@@ -123,15 +123,14 @@
 
   #add-pillar { margin-top: 14px; padding: 6px 12px; }
 
-  /* screenshot + reset hover just right of the chart square */
-  .chart-row { display: flex; gap: 10px; align-items: flex-start; }
-  .canvas-panel { flex: 1; min-width: 0; }
-  .side-actions { display: flex; flex-direction: column; gap: 9px; flex: none; }
-  .side-actions .pcbtn {
-    width: 52px; height: 46px;
-    display: inline-flex; align-items: center; justify-content: center;
+  /* copy + reset sit in a full-width row at the top of the chart window */
+  .top-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+  .top-actions .pcbtn {
+    flex: 1; height: 46px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    font: bold 16px "Courier New", Courier, monospace;
   }
-  .side-actions svg { width: 26px; height: 26px; display: block; }
+  .top-actions svg { width: 22px; height: 22px; flex: none; }
 
   .statusbar {
     margin-top: 16px;
@@ -204,19 +203,19 @@
         <span class="t-btns" aria-hidden="true">– □ ×</span>
       </div>
       <div class="win-body">
+        <div class="top-actions">
+          <button class="pcbtn" id="copy" title="Copy the wheel image to your clipboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            copy image
+          </button>
+          <button class="pcbtn" id="reset" title="Reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            reset
+          </button>
+        </div>
         <div class="statusbar stamp metrics" id="metrics"></div>
-        <div class="chart-row">
-          <div class="canvas-panel">
-            <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
-          </div>
-          <div class="side-actions">
-            <button class="pcbtn" id="shot" title="Screenshot — opens in a new tab" aria-label="Screenshot, opens in a new tab">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </button>
-            <button class="pcbtn" id="reset" title="Reset" aria-label="Reset">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            </button>
-          </div>
+        <div class="canvas-panel">
+          <svg id="chart" viewBox="0 0 840 640" role="img" aria-label="Wellness spider chart"></svg>
         </div>
         <textarea id="note" class="statusbar note" rows="2" maxlength="110" placeholder="note..." aria-label="Note"></textarea>
         <div class="statusbar stamp" id="stamp"></div>
@@ -856,16 +855,19 @@
     img.src = url;
   }
 
-  document.getElementById("shot").addEventListener("click", () => {
-    // open the tab synchronously so popup blockers allow it, then point it
-    // at the rendered image; the stamp is the moment of the click
-    const tab = window.open("", "_blank");
-    windowPNG(stampLines(), png => {
-      const url = URL.createObjectURL(png);
-      if (tab) tab.location = url;
-      else downloadBlob(png, slug() + ".png"); // popup blocked — download instead
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    });
+  document.getElementById("copy").addEventListener("click", () => {
+    // the PNG goes straight to the clipboard; the stamp is the moment of
+    // the click. ClipboardItem takes the promise so the write stays inside
+    // the user gesture (Safari requires this). No clipboard → download.
+    if (navigator.clipboard && window.ClipboardItem) {
+      const png = new Promise(res => windowPNG(stampLines(), res));
+      navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(
+        () => toast("copied to clipboard ♥"),
+        () => windowPNG(stampLines(), b => { downloadBlob(b, slug() + ".png"); toast("couldn't copy — downloaded instead"); })
+      );
+    } else {
+      windowPNG(stampLines(), b => { downloadBlob(b, slug() + ".png"); toast("no clipboard here — downloaded instead"); });
+    }
   });
   document.getElementById("reset").addEventListener("click", () => {
     state = defaults();
