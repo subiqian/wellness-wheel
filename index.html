@@ -312,10 +312,16 @@
     const series = state.color;
     svg.textContent = "";
     const N = state.pillars.length;
+    // chart order rule: Mental Health at the top (slot 0), Physical Health
+    // always LAST so it sits immediately to the left of the top — extras land in between
+    const ordered = state.pillars.slice();
+    const ph = ordered.findIndex(q => q.name === "Physical Health");
+    if (ph >= 0) ordered.push(ordered.splice(ph, 1)[0]);
+    viewOrder = ordered;
 
     // grid rings (spider polygons) at 1..5 + spokes — recessive hairlines
     for (let v = 1; v <= MAX_VAL; v++) {
-      const pts = state.pillars.map((_, i) => pt(i, v).join(",")).join(" ");
+      const pts = ordered.map((_, i) => pt(i, v).join(",")).join(" ");
       svg.appendChild(el("polygon", { points: pts, fill: "none", stroke: t.grid, "stroke-width": 1.2 }));
     }
     for (let i = 0; i < N; i++) {
@@ -331,12 +337,12 @@
     }
 
     // data polygon
-    const poly = state.pillars.map((p, i) => pt(i, p.value).join(",")).join(" ");
+    const poly = ordered.map((p, i) => pt(i, p.value).join(",")).join(" ");
     svg.appendChild(el("polygon", { points: poly, fill: rgba(series, t.fillAlpha), stroke: series,
       "stroke-width": 3, "stroke-linejoin": "round" }));
 
     // vertices + score number just outside each point
-    state.pillars.forEach((p, i) => {
+    ordered.forEach((p, i) => {
       const a = angle(i);
       const [x, y] = pt(i, p.value);
       svg.appendChild(el("circle", { cx: x, cy: y, r: 6.5, fill: t.surface,
@@ -361,7 +367,7 @@
       return lines;
     };
     const LH = 27; // line height for the 22px label font
-    state.pillars.forEach((p, i) => {
+    ordered.forEach((p, i) => {
       const a = angle(i);
       const x = CX + LABEL_R * Math.cos(a), y = CY + LABEL_R * Math.sin(a);
       const cos = Math.cos(a), sin = Math.sin(a);
@@ -458,6 +464,7 @@
 
   // ---------- drag the wheel — snaps to whole hearts ----------
   let dragging = -1;
+  let viewOrder = []; // chart-order pillar refs, set by renderChart
   function svgPoint(evt) {
     const p = new DOMPoint(evt.clientX, evt.clientY);
     return p.matrixTransform(svg.getScreenCTM().inverse());
@@ -477,8 +484,8 @@
     const q = svgPoint(evt), a = angle(dragging);
     const v = ((q.x - CX) * Math.cos(a) + (q.y - CY) * Math.sin(a)) / R * MAX_VAL;
     const snapped = Math.round(Math.min(MAX_VAL, Math.max(0, v)));
-    if (state.pillars[dragging].value !== snapped) {
-      state.pillars[dragging].value = snapped;
+    if (viewOrder[dragging].value !== snapped) {
+      viewOrder[dragging].value = snapped;
       renderList(); // hearts follow the drag
     }
   }
