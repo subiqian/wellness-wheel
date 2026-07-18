@@ -305,8 +305,9 @@
   // bold colors only, sample-aesthetic adjacent, tuned a touch more vibrant
   const SWATCHES = ["#e03aa8", "#ea4b68", "#f28322", "#efae12", "#a8cc26", "#1fa982", "#17adc4", "#3178d6", "#8d55d6"];
   const DEFAULT_COLOR = SWATCHES[0];
-  const FIXED = ["Mental", "Physical", "Productivity", "Sociability"];
-  const MAX_PILLARS = 6, MAX_VAL = 5; // 4 fixed + 2 added — keeps areaBounds' brute force tiny
+  const FIXED = ["Mental", "Physical", "Productivity", "Sociability", "Energy"];
+  const MAX_PILLARS = 7, MAX_VAL = 5; // 5 fixed + 2 added — keeps areaBounds' brute force tiny
+  const BASE_VAL = 3; // functionality baseline: 100% = an even all-3s wheel
 
   function defaults() {
     return {
@@ -316,7 +317,7 @@
       pillars: FIXED.map(name => ({ name, value: 3 }))
     };
   }
-  // The three fixed pillars always occupy slots 0-2 (matched by name if the
+  // The fixed pillars always occupy the first slots (matched by name if the
   // incoming data has them); everything else becomes an extra, capped at 7 total.
   function sanitize(s) {
     const color = SWATCHES.includes(String(s.color || "").toLowerCase()) ? s.color.toLowerCase() : DEFAULT_COLOR;
@@ -473,8 +474,8 @@
   }
 
   // mean score + estimated functionality: the min-max shaded area these
-  // values could produce across axis orderings, as a share of the full
-  // all-5s polygon
+  // values could produce across axis orderings, as a share of the even
+  // all-3s baseline polygon (scores above 3 push past 100%)
   function metricsLines() {
     const avg = state.pillars.reduce((s, p) => s + p.value, 0) / state.pillars.length;
     const [aMin, aMax] = areaBounds(state.pillars.map(p => p.value));
@@ -491,10 +492,11 @@
   const TIP_FN = "♥ what is estimated functionality? ♥\n" +
     "in this visualization, the shaded area compounds depending on the value " +
     "of its neighbor pillars. the same scores can shade more or less of the " +
-    "full wheel depending on their placements relative to one another. we " +
+    "wheel depending on their placements relative to one another. we " +
     "lean into that metaphor: life's pillars compound on one another, each " +
     "scaling the others. this range estimate captures their worst to their " +
-    "best arrangement.";
+    "best arrangement, measured against a steady all-3s wheel — 100% means " +
+    "baseline functional, and scores above 3 push past 100%.";
   function moveTip(e) {
     const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
     let x = e.clientX + pad, y = e.clientY + pad;
@@ -506,7 +508,7 @@
   function hideTip() { tipEl.classList.remove("show"); }
 
   // min & max polygon area over all axis orderings, as a fraction of the
-  // full (all-5s) polygon. Area ∝ Σ adjacent-value products — the ½sin(2π/N)
+  // even all-3s polygon. Area ∝ Σ adjacent-value products — the ½sin(2π/N)
   // factor cancels in the ratio — so brute-force the cyclic orderings with
   // the first value pinned (rotations don't change the sum; ≤5! = 120 perms)
   function areaBounds(vals) {
@@ -522,7 +524,7 @@
         perm(rest.slice(0, i).concat(rest.slice(i + 1)), ring.concat(rest[i]));
     };
     perm(vals.slice(1), [vals[0]]);
-    return [min, max].map(s => s / (MAX_VAL * MAX_VAL * vals.length));
+    return [min, max].map(s => s / (BASE_VAL * BASE_VAL * vals.length));
   }
 
   // ---------- pillar list ----------
